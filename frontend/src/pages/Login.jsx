@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, User, ArrowRight, AlertCircle, BarChart3, Building2 } from 'lucide-react';
+import { Lock, User, ArrowRight, AlertCircle, BarChart3, Building2, Store } from 'lucide-react';
 
 export default function Login({ onLoginSuccess }) {
   const [username, setUsername] = useState('ADMIN');
@@ -25,14 +25,49 @@ export default function Login({ onLoginSuccess }) {
 
       const matchUser = registeredUsers.find(ru => ru.username === u && ru.activo);
 
-      if ((u === 'ADMIN' && p === '1234') || (u === 'GERENTE' && p === '1234') || (u === 'USUARIO' && p === '1234') || (u === 'OPERADOR1' && p === '1234') || (u === 'OPERADOR2' && p === '1234') || matchUser) {
-        const detectedRole = matchUser ? matchUser.rol : (u === 'ADMIN' ? 'ADMINISTRADOR' : (u === 'GERENTE' ? 'GERENTE' : 'USUARIO'));
+      if ((u === 'ADMIN' && p === '1234') || 
+          (u === 'EJECUTIVO' && p === '1234') || 
+          (u === 'GERENTE' && p === '1234') || 
+          (u === 'GERENTE1' && p === '1234') || 
+          (u === 'GERENTE2' && p === '1234') || 
+          (u === 'USUARIO' && p === '1234') || 
+          (u === 'OPERADOR1' && p === '1234') || 
+          (u === 'OPERADOR2' && p === '1234') || 
+          matchUser) {
+        
+        const detectedRole = matchUser 
+          ? matchUser.rol 
+          : (u === 'ADMIN' 
+              ? 'ADMINISTRADOR' 
+              : (u === 'EJECUTIVO' 
+                  ? 'GERENTE EJECUTIVO' 
+                  : (u.startsWith('GERENTE') ? 'GERENTE' : 'USUARIO')));
+        
+        let assignedSucursal = 'ALL';
+        if (matchUser) {
+          assignedSucursal = matchUser.sucursal || (detectedRole === 'ADMINISTRADOR' || detectedRole === 'GERENTE EJECUTIVO' ? 'ALL' : 'goyurt-suc-01');
+        } else if (u === 'ADMIN' || u === 'EJECUTIVO') {
+          assignedSucursal = 'ALL';
+        } else if (u === 'GERENTE' || u === 'GERENTE1' || u === 'OPERADOR1' || u === 'USUARIO') {
+          assignedSucursal = 'goyurt-suc-01'; // Sucursal 1
+        } else if (u === 'GERENTE2' || u === 'OPERADOR2') {
+          assignedSucursal = 'goyurt-suc-02'; // Sucursal 2
+        }
+
         const userObj = {
           username: u,
-          nombre: matchUser ? matchUser.nombre : (u === 'ADMIN' ? 'Administrador General' : (u === 'GERENTE' ? 'Gerente de Operaciones' : 'Operador de Sucursal')),
+          nombre: matchUser 
+            ? matchUser.nombre 
+            : (u === 'ADMIN' 
+                ? 'Administrador General' 
+                : (u === 'EJECUTIVO' 
+                    ? 'Gerencia General Ejecutiva' 
+                    : (u === 'GERENTE' ? 'Gerente Sucursal 1' : 'Operador de Sucursal'))),
           rol: role || detectedRole,
+          sucursal: (role === 'ADMINISTRADOR' || role === 'GERENTE EJECUTIVO') ? 'ALL' : assignedSucursal,
           empresa: 'GOYURT PANAMÁ'
         };
+
         localStorage.setItem('iconweb_user', JSON.stringify(userObj));
         onLoginSuccess(userObj);
       } else {
@@ -126,26 +161,27 @@ export default function Login({ onLoginSuccess }) {
           {/* Rol / Perfil de Acceso */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
-              Perfil / Rol
+              Perfil / Nivel de Acceso
             </label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {[
-                { id: 'ADMINISTRADOR', label: 'Admin', desc: 'Total + Users' },
-                { id: 'GERENTE', label: 'Gerente', desc: 'Analytics + Z' },
-                { id: 'USUARIO', label: 'Operador', desc: 'Ventas' }
+                { id: 'ADMINISTRADOR', label: 'Admin', desc: 'Consolidado + Ajustes' },
+                { id: 'GERENTE EJECUTIVO', label: 'Gerente Ejecutivo', desc: 'Consolidado (Sin Ajustes)' },
+                { id: 'GERENTE', label: 'Gerente Local', desc: 'Solo su Sucursal' },
+                { id: 'USUARIO', label: 'Operador TPV', desc: 'Solo su Sucursal' }
               ].map((r) => (
                 <button
                   key={r.id}
                   type="button"
                   onClick={() => setRole(r.id)}
-                  className={`p-2 rounded-xl text-xs font-bold border transition-all text-center ${
+                  className={`p-2.5 rounded-xl text-xs font-bold border transition-all text-left ${
                     role === r.id
-                      ? 'bg-teal-50 border-teal-500 text-teal-800 shadow-sm ring-1 ring-teal-500'
+                      ? 'bg-teal-50 border-teal-500 text-teal-900 shadow-sm ring-1 ring-teal-500'
                       : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-800'
                   }`}
                 >
                   <div className="font-extrabold">{r.label}</div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">{r.desc}</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">{r.desc}</div>
                 </button>
               ))}
             </div>
@@ -163,11 +199,13 @@ export default function Login({ onLoginSuccess }) {
         </form>
 
         {/* Acceso Rápido / Información de Credenciales */}
-        <div className="mt-6 pt-5 border-t border-slate-100 text-center text-xs text-slate-500 space-y-1">
-          <p className="font-semibold text-slate-700">Acceso por defecto configurado:</p>
-          <p className="font-mono text-teal-700 bg-teal-50 py-1 px-2.5 rounded-lg inline-block border border-teal-200 font-bold">
-            Usuario: ADMIN | Clave: 1234
-          </p>
+        <div className="mt-5 pt-4 border-t border-slate-100 text-center text-[11px] text-slate-500 space-y-1">
+          <p className="font-semibold text-slate-700">Accesos configurados:</p>
+          <div className="flex flex-wrap items-center justify-center gap-2 font-mono text-[10px]">
+            <span className="bg-teal-50 text-teal-800 px-2 py-0.5 rounded border border-teal-200 font-bold">ADMIN / 1234</span>
+            <span className="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded border border-indigo-200 font-bold">EJECUTIVO / 1234</span>
+            <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">GERENTE / 1234</span>
+          </div>
         </div>
       </div>
     </div>

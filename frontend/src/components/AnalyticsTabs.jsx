@@ -45,7 +45,7 @@ export default function AnalyticsTabs({ activeTab, setActiveTab, userRole }) {
     {
       id: 'usuarios',
       label: 'Usuarios y Accesos Web',
-      desc: 'Perfiles de Administrador, Gerente y Operador',
+      desc: 'Perfiles de Administrador, Gerente Ejecutivo, Gerente y Operador',
       icon: Users
     },
     {
@@ -57,11 +57,12 @@ export default function AnalyticsTabs({ activeTab, setActiveTab, userRole }) {
   ];
 
   const isAdminTabActive = activeTab === 'config' || activeTab === 'usuarios' || activeTab === 'parametros';
+  // REGLA: Solo el ADMINISTRADOR GENERAL puede ver el menú de Administración (Crear usuarios y Configuración)
+  // El GERENTE EJECUTIVO tiene acceso al consolidado y analítica, pero NO a administración
   const showAdminMenu = userRole === 'ADMINISTRADOR';
 
   const handleSelectAdminOption = (tabId) => {
     if (tabId === 'parametros') {
-      // Si aún no hay vista de parámetros, abrir configuración del sistema por defecto
       setActiveTab('config');
     } else {
       setActiveTab(tabId);
@@ -71,7 +72,7 @@ export default function AnalyticsTabs({ activeTab, setActiveTab, userRole }) {
 
   return (
     <div className="flex items-center gap-2 overflow-x-visible pb-2 border-b border-slate-200 no-print relative">
-      {/* 1. Pestañas Principales Operativas */}
+      {/* 1. Pestañas Principales Operativas y Gerenciales */}
       {mainTabs.map((tab) => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;
@@ -102,7 +103,7 @@ export default function AnalyticsTabs({ activeTab, setActiveTab, userRole }) {
         );
       })}
 
-      {/* 2. Menú Desplegable: ADMINISTRACIÓN & CONFIGURACIÓN */}
+      {/* 2. Menú Desplegable: ADMINISTRACIÓN (Exclusivo para ADMINISTRADOR) */}
       {showAdminMenu && (
         <div className="relative" ref={dropdownRef}>
           <button

@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw, Building2, BarChart3, LogOut, Shield } from 'lucide-react';
+import { RefreshCw, Building2, BarChart3, LogOut, Shield, Lock, Star } from 'lucide-react';
 
 export default function Navbar({
   selectedBranch,
@@ -12,6 +12,11 @@ export default function Navbar({
   currentUser,
   onLogout
 }) {
+  // ADMINISTRADOR y GERENTE EJECUTIVO tienen acceso a todas las sucursales (Consolidado)
+  const canViewAllBranches = currentUser?.rol === 'ADMINISTRADOR' || currentUser?.rol === 'GERENTE EJECUTIVO';
+  const assignedBranch = currentUser?.sucursal;
+  const assignedBranchObj = branches.find(b => b.id === assignedBranch);
+
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-slate-200 px-4 sm:px-8 py-3 shadow-sm">
       <div className="max-w-7xl mx-auto flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -36,23 +41,40 @@ export default function Navbar({
 
         {/* 2. Filtros Ejecutivos & Perfil con Logo del Cliente */}
         <div className="flex flex-wrap items-center gap-3">
-          {/* Selector de Sucursal */}
+          {/* Selector de Sucursal con Control de Acceso por Perfil */}
           <div className="relative">
-            <select
-              value={selectedBranch}
-              onChange={(e) => setSelectedBranch(e.target.value)}
-              className="bg-white border border-slate-200 text-slate-700 text-xs font-bold rounded-xl px-3.5 py-2 pr-8 appearance-none focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 cursor-pointer shadow-sm hover:border-slate-300 transition-colors"
-            >
-              <option value="ALL">🏢 Todas las Sucursales (Consolidado)</option>
-              {branches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  📍 {b.nombre}
-                </option>
-              ))}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400 text-xs">
-              ▼
-            </div>
+            {canViewAllBranches ? (
+              // Administrador y Gerente Ejecutivo: Acceso a Consolidado y a Todas las Sucursales
+              <>
+                <select
+                  value={selectedBranch}
+                  onChange={(e) => setSelectedBranch(e.target.value)}
+                  className="bg-white border border-slate-200 text-slate-700 text-xs font-bold rounded-xl px-3.5 py-2 pr-8 appearance-none focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 cursor-pointer shadow-sm hover:border-slate-300 transition-colors"
+                >
+                  <option value="ALL">🌐 Todas las Sucursales (Consolidado)</option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      📍 {b.nombre}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400 text-xs">
+                  ▼
+                </div>
+              </>
+            ) : (
+              // Gerente de Sucursal / Usuario: Bloqueado a su Sucursal Asignada
+              <div 
+                className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl px-3.5 py-2 shadow-sm"
+                title={`Acceso restringido por rol ${currentUser?.rol} a su sucursal asignada`}
+              >
+                <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                <span>📍 {assignedBranchObj ? assignedBranchObj.nombre : (assignedBranch || 'Sucursal Asignada')}</span>
+                <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 uppercase ml-1">
+                  Exclusivo
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Selector de Rango de Fechas */}
@@ -77,7 +99,7 @@ export default function Navbar({
           <button
             onClick={onRefresh}
             disabled={loading}
-            className="flex items-center gap-1.5 bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-sm shadow-teal-600/20 disabled:opacity-50"
+            className="flex items-center gap-1.5 bg-[#22c1b4] hover:bg-teal-600 active:bg-teal-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-sm shadow-teal-500/20 disabled:opacity-50"
             title="Refrescar datos en vivo"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-white' : 'text-teal-100'}`} />
@@ -102,7 +124,15 @@ export default function Navbar({
               {/* Datos del Usuario y Rol */}
               <div className="flex flex-col text-right">
                 <span className="text-xs font-black text-slate-900 leading-tight">{currentUser.username}</span>
-                <span className="text-[10px] text-teal-700 font-extrabold uppercase tracking-wider">{currentUser.rol}</span>
+                <span className={`text-[10px] font-extrabold uppercase tracking-wider flex items-center justify-end gap-1 ${
+                  currentUser.rol === 'ADMINISTRADOR'
+                    ? 'text-teal-700'
+                    : (currentUser.rol === 'GERENTE EJECUTIVO' ? 'text-indigo-700' : 'text-slate-600')
+                }`}>
+                  {currentUser.rol === 'GERENTE EJECUTIVO' && <Star className="w-2.5 h-2.5 text-indigo-500" />}
+                  <span>{currentUser.rol}</span>
+                  {!canViewAllBranches && <Lock className="w-2.5 h-2.5 text-amber-500" />}
+                </span>
               </div>
 
               {/* Botón Cerrar Sesión en Rojo */}

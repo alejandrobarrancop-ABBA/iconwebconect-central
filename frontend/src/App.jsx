@@ -27,9 +27,22 @@ export default function App() {
     }
   });
 
-  // 2. Estado de Navegación y Filtros
+  // 2. Estado de Navegación y Filtros (Restricción por Rol: Administrador y Gerente Ejecutivo pueden ver Consolidado)
+  const canViewAllBranches = currentUser?.rol === 'ADMINISTRADOR' || currentUser?.rol === 'GERENTE EJECUTIVO';
+
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [selectedBranch, setSelectedBranch] = useState('ALL');
+  const [selectedBranch, setSelectedBranch] = useState(() => {
+    try {
+      const saved = localStorage.getItem('iconweb_user');
+      if (saved) {
+        const u = JSON.parse(saved);
+        if (u.rol !== 'ADMINISTRADOR' && u.rol !== 'GERENTE EJECUTIVO' && u.sucursal && u.sucursal !== 'ALL') {
+          return u.sucursal;
+        }
+      }
+    } catch (_) {}
+    return 'ALL';
+  });
   const [dateRange, setDateRange] = useState('TODAY');
 
   // 3. Estado de Datos
@@ -40,6 +53,13 @@ export default function App() {
   const [payments, setPayments] = useState([]);
   const [cierres, setCierres] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Asegurar restricción de sucursal si el usuario no es Administrador ni Gerente Ejecutivo
+  useEffect(() => {
+    if (currentUser && !canViewAllBranches && currentUser.sucursal && currentUser.sucursal !== 'ALL') {
+      setSelectedBranch(currentUser.sucursal);
+    }
+  }, [currentUser, canViewAllBranches]);
 
   const handleLogout = () => {
     localStorage.removeItem('iconweb_user');
@@ -75,7 +95,7 @@ export default function App() {
     }
   };
 
-  // Cargar Ventas según filtros
+  // Cargar Ventas según filtros y permisos
   const fetchSalesData = async () => {
     setLoading(true);
     try {
@@ -100,6 +120,12 @@ export default function App() {
         fromDate = new Date(now.getFullYear(), 0, 1);
       }
 
+      // Determinación estricta de sucursal a consultar (Administrador y Gerente Ejecutivo pueden consultar Consolidado o cualquier sucursal)
+      let branchToQuery = selectedBranch;
+      if (currentUser && !canViewAllBranches && currentUser.sucursal && currentUser.sucursal !== 'ALL') {
+        branchToQuery = currentUser.sucursal;
+      }
+
       // Query Ventas Cabecera
       let q = supabase
         .from('ventas_cabecera')
@@ -107,8 +133,8 @@ export default function App() {
         .gte('fecha', fromDate.toISOString().split('T')[0])
         .order('fecha_hora', { ascending: false });
 
-      if (selectedBranch !== 'ALL') {
-        q = q.eq('sucursal_id', selectedBranch);
+      if (branchToQuery !== 'ALL') {
+        q = q.eq('sucursal_id', branchToQuery);
       }
 
       const { data: salesData, error: salesErr } = await q;
@@ -122,13 +148,13 @@ export default function App() {
           const { data: detData } = await supabase
             .from('ventas_detalle')
             .select('*')
-            .in('venta_id', ticketIds.slice(0, 100));
+            .in('venta_id', ticketIds.slice(0, 150));
           if (detData) setDetails(detData);
 
           const { data: payData } = await supabase
             .from('ventas_pagos')
             .select('*')
-            .in('venta_id', ticketIds.slice(0, 100));
+            .in('venta_id', ticketIds.slice(0, 150));
           if (payData) setPayments(payData);
         } else {
           setDetails([]);
@@ -143,8 +169,8 @@ export default function App() {
         .order('fecha_cierre', { ascending: false })
         .limit(30);
 
-      if (selectedBranch !== 'ALL') {
-        qZ = qZ.eq('sucursal_id', selectedBranch);
+      if (branchToQuery !== 'ALL') {
+        qZ = qZ.eq('sucursal_id', branchToQuery);
       }
 
       const { data: zData } = await qZ;
@@ -173,7 +199,8 @@ export default function App() {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'ventas_cabecera' },
         (payload) => {
-          if (selectedBranch === 'ALL' || payload.new.sucursal_id === selectedBranch) {
+          const allowedBranch = canViewAllBranches ? selectedBranch : (currentUser?.sucursal || selectedBranch);
+          if (allowedBranch === 'ALL' || payload.new.sucursal_id === allowedBranch) {
             setSales(prev => [payload.new, ...prev]);
           }
         }
@@ -193,7 +220,7 @@ export default function App() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedBranch]);
+  }, [selectedBranch, currentUser]);
 
   // Mapa rápido de sucursales
   const branchesMap = useMemo(() => {
@@ -296,35 +323,13 @@ export default function App() {
     }));
   }, [payments, sales, kpis.totalVentas]);
 
-  // Top Productos
-  const topProductsData = useMemo(() => {
-    const map = {};
-    details.forEach(d => {
-      const art = d.descripcion || d.codarticulo;
-      if (!map[art]) {
-        map[art] = {
-          descripcion: art,
-          descripcionCorta: art.length > 18 ? art.substring(0, 18) + '...' : art,
-          unidades: 0,
-          total: 0
-        };
-      }
-      map[art].unidades += Number(d.unidades || 1);
-      map[art].total += Number(d.total_linea || 0);
-    });
-
-    return Object.values(map)
-      .sort((a, b) => b.unidades - a.unidades)
-      .slice(0, 8);
-  }, [details]);
-
   // Si no está autenticado, mostrar pantalla de Login
   if (!currentUser) {
     return <Login onLoginSuccess={setCurrentUser} />;
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-emerald-600 selection:text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-teal-600 selection:text-white">
       {/* 1. Header Oficial ICONWEBCONECT */}
       <Navbar
         selectedBranch={selectedBranch}
@@ -352,7 +357,7 @@ export default function App() {
           <BranchStatusPill branches={branches} heartbeats={heartbeats} />
         </div>
 
-        {/* VISTA 1: DASHBOARD EJECUTIVO */}
+        {/* VISTA 1: DASHBOARD EJECUTIVO Y GERENCIAL */}
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
             {/* Tarjetas KPI */}
@@ -389,7 +394,18 @@ export default function App() {
               />
             </div>
 
-            {/* Gráficos Ejecutivos */}
+            {/* TOP RANKING DE ARTÍCULOS MEJORADO (Cruzado por sucursal, Top N, Barras/Pastel/Líneas) */}
+            <div className="w-full">
+              <TopProductsChart
+                details={details}
+                sales={sales}
+                branches={branches}
+                branchesMap={branchesMap}
+                selectedBranch={selectedBranch}
+              />
+            </div>
+
+            {/* Gráficos Ejecutivos Complementarios */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <BranchComparisonChart data={branchComparisonData} />
               <HourlySalesChart data={hourlyData} />
@@ -397,7 +413,6 @@ export default function App() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <PaymentMethodsPie data={paymentMethodsData} />
-              <TopProductsChart data={topProductsData} />
             </div>
           </div>
         )}
