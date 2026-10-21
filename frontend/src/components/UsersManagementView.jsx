@@ -58,80 +58,103 @@ export default function UsersManagementView({ branches = [] }) {
   const [nuevoNombre, setNuevoNombre] = useState('');
   const [nuevoUsername, setNuevoUsername] = useState('');
   const [nuevoPassword, setNuevoPassword] = useState('');
-  const [nuevoRol, setNuevoRol] = useState('GERENTE');
+  const [nuevoRol, setNuevoRol] = useState('USUARIO');
   const [nuevaSucursal, setNuevaSucursal] = useState('ALL');
 
-  const saveUsers = (updatedList) => {
-    setUsers(updatedList);
-    localStorage.setItem('goyurt_users', JSON.stringify(updatedList));
-  };
-
-  const handleCreateUser = (e) => {
+  const handleCrearUsuario = (e) => {
     e.preventDefault();
-    if (!nuevoUsername.trim()) return;
+    if (!nuevoUsername.trim() || !nuevoPassword.trim()) return;
 
-    const branchObj = branches.find(b => b.id === nuevaSucursal);
+    const sucursalObj = branches.find(b => b.id === nuevaSucursal);
+    const sucursalNombre = nuevaSucursal === 'ALL' ? 'Todas las Sucursales' : (sucursalObj ? sucursalObj.nombre : nuevaSucursal);
+
     const newUser = {
       id: `usr-${Date.now()}`,
-      nombre: nuevoNombre.trim() || nuevoUsername.toUpperCase(),
+      nombre: nuevoNombre.trim() || nuevoUsername.trim().toUpperCase(),
       username: nuevoUsername.trim().toUpperCase(),
       rol: nuevoRol,
       sucursal: nuevaSucursal,
-      sucursalNombre: nuevaSucursal === 'ALL' ? 'Todas las Sucursales' : (branchObj?.nombre || nuevaSucursal),
+      sucursalNombre,
       activo: true,
       fechaCreacion: new Date().toISOString().split('T')[0]
     };
 
-    saveUsers([...users, newUser]);
+    const updated = [newUser, ...users];
+    setUsers(updated);
+    localStorage.setItem('goyurt_users', JSON.stringify(updated));
+
+    // Limpiar formulario y cerrar modal
     setNuevoNombre('');
     setNuevoUsername('');
     setNuevoPassword('');
+    setNuevoRol('USUARIO');
+    setNuevaSucursal('ALL');
     setShowModal(false);
   };
 
   const toggleStatus = (id) => {
-    const updated = users.map(u => u.id === id ? { ...u, activo: !u.activo } : u);
-    saveUsers(updated);
+    const updated = users.map(u => {
+      if (u.id === id) {
+        return { ...u, activo: !u.activo };
+      }
+      return u;
+    });
+    setUsers(updated);
+    localStorage.setItem('goyurt_users', JSON.stringify(updated));
   };
 
   const handleDelete = (id, username) => {
     if (username === 'ADMIN') {
-      alert('El usuario ADMIN principal no puede ser eliminado.');
+      alert('El usuario ADMIN principal del sistema no puede ser eliminado.');
       return;
     }
-    if (confirm(`¿Estás seguro de eliminar el usuario ${username}?`)) {
-      saveUsers(users.filter(u => u.id !== id));
+    if (confirm(`¿Está seguro de eliminar el usuario ${username}?`)) {
+      const updated = users.filter(u => u.id !== id);
+      setUsers(updated);
+      localStorage.setItem('goyurt_users', JSON.stringify(updated));
     }
   };
 
   const getRoleBadge = (rol) => {
     switch (rol) {
       case 'ADMINISTRADOR':
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black bg-purple-500/10 text-purple-400 border border-purple-500/30">👑 ADMINISTRADOR</span>;
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-800 border border-emerald-200">
+            👑 ADMINISTRADOR
+          </span>
+        );
       case 'GERENTE':
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#22c1b4]/10 text-[#22c1b4] border border-[#22c1b4]/30">📊 GERENTE</span>;
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-200">
+            📊 GERENTE
+          </span>
+        );
       default:
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black bg-blue-500/10 text-blue-400 border border-blue-500/30">👤 OPERADOR</span>;
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-700 border border-slate-200">
+            👤 USUARIO
+          </span>
+        );
     }
   };
 
   return (
     <div className="space-y-6 font-sans">
       {/* Encabezado del Módulo */}
-      <div className="bg-[#0b172d] border border-[#172d54] rounded-2xl p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 className="text-lg font-black text-white flex items-center gap-2">
-            <Shield className="w-5 h-5 text-[#22c1b4]" />
+          <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+            <Shield className="w-5 h-5 text-emerald-600" />
             Control de Usuarios y Perfiles de Acceso Web
           </h3>
-          <p className="text-xs text-slate-400">
-            Administra quiénes tienen acceso al panel gerencial central y asigna sus niveles de permisos
+          <p className="text-xs text-slate-500 font-medium">
+            Administra quiénes tienen acceso al panel gerencial central de <strong>GOYURT PANAMÁ</strong> y asigna sus niveles de permisos.
           </p>
         </div>
 
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 bg-gradient-to-r from-[#22c1b4] to-teal-600 hover:from-teal-400 hover:to-teal-500 text-[#070f1e] font-black text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-[#22c1b4]/20 transition-all"
+          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-emerald-600/20 transition-all"
         >
           <UserPlus className="w-4 h-4" />
           <span>Crear Nuevo Usuario</span>
@@ -139,10 +162,10 @@ export default function UsersManagementView({ branches = [] }) {
       </div>
 
       {/* Tabla de Usuarios */}
-      <div className="bg-[#0b172d] border border-[#172d54] rounded-2xl p-6 shadow-xl">
-        <div className="overflow-x-auto rounded-xl border border-[#172d54]">
-          <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-[#070f1e] text-slate-400 font-bold uppercase tracking-wider border-b border-[#172d54]">
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+        <div className="overflow-x-auto rounded-xl border border-slate-200">
+          <table className="w-full text-left text-xs text-slate-600">
+            <thead className="bg-slate-50 text-slate-700 font-bold uppercase tracking-wider border-b border-slate-200">
               <tr>
                 <th className="px-4 py-3">Usuario / Nombre</th>
                 <th className="px-4 py-3">Rol / Nivel</th>
@@ -152,17 +175,17 @@ export default function UsersManagementView({ branches = [] }) {
                 <th className="px-4 py-3 text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#172d54]/60">
+            <tbody className="divide-y divide-slate-100">
               {users.map((u) => (
-                <tr key={u.id} className="hover:bg-[#102142]/50 transition-colors">
+                <tr key={u.id} className="hover:bg-slate-50/75 transition-colors">
                   <td className="px-4 py-3">
-                    <div className="font-bold text-white text-sm">{u.username}</div>
-                    <div className="text-[11px] text-slate-400">{u.nombre}</div>
+                    <div className="font-bold text-slate-900 text-sm">{u.username}</div>
+                    <div className="text-[11px] text-slate-500">{u.nombre}</div>
                   </td>
                   <td className="px-4 py-3">
                     {getRoleBadge(u.rol)}
                   </td>
-                  <td className="px-4 py-3 font-medium text-slate-300">
+                  <td className="px-4 py-3 font-medium text-slate-700">
                     {u.sucursalNombre}
                   </td>
                   <td className="px-4 py-3 font-mono text-slate-400">
@@ -173,8 +196,8 @@ export default function UsersManagementView({ branches = [] }) {
                       onClick={() => toggleStatus(u.id)}
                       className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${
                         u.activo
-                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                          : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-rose-50 text-rose-700 border-rose-200'
                       }`}
                     >
                       {u.activo ? 'ACTIVO' : 'INACTIVO'}
@@ -184,7 +207,7 @@ export default function UsersManagementView({ branches = [] }) {
                     <button
                       onClick={() => handleDelete(u.id, u.username)}
                       disabled={u.username === 'ADMIN'}
-                      className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors disabled:opacity-30"
+                      className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 transition-colors disabled:opacity-30"
                       title="Eliminar usuario"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -199,103 +222,90 @@ export default function UsersManagementView({ branches = [] }) {
 
       {/* Modal Crear Usuario */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-[#0b172d] border border-[#172d54] rounded-2xl max-w-md w-full p-6 shadow-2xl">
-            <h4 className="text-lg font-black text-white mb-1 flex items-center gap-2">
-              <UserPlus className="w-5 h-5 text-[#22c1b4]" />
-              Crear Nuevo Usuario
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl">
+            <h4 className="text-lg font-black text-slate-900 mb-4 flex items-center gap-2">
+              <UserPlus className="w-5 h-5 text-emerald-600" />
+              <span>Registrar Nuevo Usuario</span>
             </h4>
-            <p className="text-xs text-slate-400 mb-5">
-              Configura el acceso para el personal de <strong>GOYURT</strong>
-            </p>
 
-            <form onSubmit={handleCreateUser} className="space-y-4">
+            <form onSubmit={handleCrearUsuario} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1 uppercase tracking-wider">
-                  Nombre Completo
-                </label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Nombre Completo</label>
                 <input
                   type="text"
                   required
                   placeholder="Ej: Laura Méndez"
                   value={nuevoNombre}
                   onChange={(e) => setNuevoNombre(e.target.value)}
-                  className="w-full bg-[#070f1e] border border-[#172d54] focus:border-[#22c1b4] rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl px-3 py-2 text-xs text-slate-800"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1 uppercase tracking-wider">
-                  Nombre de Usuario (Login)
-                </label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Nombre de Usuario (Login)</label>
                 <input
                   type="text"
                   required
                   placeholder="Ej: LAURA"
                   value={nuevoUsername}
                   onChange={(e) => setNuevoUsername(e.target.value)}
-                  className="w-full bg-[#070f1e] border border-[#172d54] focus:border-[#22c1b4] rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none uppercase font-mono"
+                  className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl px-3 py-2 text-xs text-slate-800 uppercase font-mono"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1 uppercase tracking-wider">
-                  Contraseña Inicial
-                </label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Contraseña</label>
                 <input
                   type="password"
                   required
-                  placeholder="••••"
+                  placeholder="••••••••"
                   value={nuevoPassword}
                   onChange={(e) => setNuevoPassword(e.target.value)}
-                  className="w-full bg-[#070f1e] border border-[#172d54] focus:border-[#22c1b4] rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl px-3 py-2 text-xs text-slate-800"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1 uppercase tracking-wider">
-                    Rol / Nivel
-                  </label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Rol / Permisos</label>
                   <select
                     value={nuevoRol}
                     onChange={(e) => setNuevoRol(e.target.value)}
-                    className="w-full bg-[#070f1e] border border-[#172d54] focus:border-[#22c1b4] rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl px-3 py-2 text-xs text-slate-800"
                   >
-                    <option value="GERENTE">📊 GERENTE</option>
-                    <option value="USUARIO">👤 OPERADOR</option>
-                    <option value="ADMINISTRADOR">👑 ADMINISTRADOR</option>
+                    <option value="ADMINISTRADOR">Administrador</option>
+                    <option value="GERENTE">Gerente</option>
+                    <option value="USUARIO">Usuario / Cajero</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1 uppercase tracking-wider">
-                    Sucursal
-                  </label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Sucursal Asignada</label>
                   <select
                     value={nuevaSucursal}
                     onChange={(e) => setNuevaSucursal(e.target.value)}
-                    className="w-full bg-[#070f1e] border border-[#172d54] focus:border-[#22c1b4] rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl px-3 py-2 text-xs text-slate-800"
                   >
-                    <option value="ALL">🏢 Todas</option>
-                    {branches.map((b) => (
-                      <option key={b.id} value={b.id}>📍 {b.codigo || b.nombre}</option>
+                    <option value="ALL">Todas las Sucursales</option>
+                    {branches.map(b => (
+                      <option key={b.id} value={b.id}>{b.nombre}</option>
                     ))}
                   </select>
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#172d54]">
+              <div className="flex justify-end gap-2 pt-3">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white"
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="bg-gradient-to-r from-[#22c1b4] to-teal-600 hover:from-teal-400 hover:to-teal-500 text-[#070f1e] font-black text-xs px-5 py-2 rounded-xl shadow-md transition-all"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/20"
                 >
                   Guardar Usuario
                 </button>

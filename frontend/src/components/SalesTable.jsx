@@ -38,14 +38,14 @@ export default function SalesTable({ sales = [], branchesMap = {} }) {
   };
 
   return (
-    <div className="bg-[#0b1530] border border-[#1a2d6b] rounded-2xl p-6 shadow-xl flex flex-col">
+    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div>
-          <h3 className="text-base font-black text-white flex items-center gap-2">
-            <FileText className="w-4 h-4 text-amber-400" />
+          <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+            <FileText className="w-4 h-4 text-emerald-600" />
             Auditoría de Ventas y Tickets Sincronizados
           </h3>
-          <p className="text-xs text-slate-400">Detalle transaccional en tiempo real desde las cajas locales de ICG</p>
+          <p className="text-xs text-slate-500">Detalle transaccional en tiempo real desde las cajas locales de ICG</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -57,63 +57,68 @@ export default function SalesTable({ sales = [], branchesMap = {} }) {
               placeholder="Buscar por ticket o sucursal..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-[#060d1f] border border-[#1a2d6b] text-slate-200 text-xs rounded-xl pl-8 pr-3 py-1.5 focus:outline-none focus:border-blue-500 w-48 sm:w-64"
+              className="bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl pl-8 pr-3 py-1.5 focus:outline-none focus:border-emerald-500 focus:bg-white w-48 sm:w-64"
             />
           </div>
 
-          {/* Botón Exportar Excel/CSV */}
+          {/* Botón Exportar CSV VERDE */}
           <button
             onClick={exportToCsv}
             disabled={filteredSales.length === 0}
-            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all shadow-sm disabled:opacity-50"
-            title="Exportar a CSV para Excel"
+            className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold px-3 py-1.5 rounded-xl transition-all disabled:opacity-40"
           >
-            <Download className="w-3.5 h-3.5" />
+            <Download className="w-3.5 h-3.5 text-emerald-600" />
             <span className="hidden sm:inline">Exportar CSV</span>
           </button>
         </div>
       </div>
 
-      {/* Tabla de Resultados */}
-      <div className="overflow-x-auto rounded-xl border border-[#1a2d6b]">
-        <table className="w-full text-left text-xs text-slate-300">
-          <thead className="bg-[#060d1f] text-slate-400 font-bold uppercase tracking-wider border-b border-[#1a2d6b]">
+      {/* Tabla */}
+      <div className="overflow-x-auto rounded-xl border border-slate-200">
+        <table className="w-full text-left text-xs text-slate-600">
+          <thead className="bg-slate-50 text-slate-700 font-bold uppercase tracking-wider border-b border-slate-200">
             <tr>
-              <th className="px-4 py-3">Punto de Venta / Sucursal</th>
-              <th className="px-4 py-3">Serie y Ticket</th>
+              <th className="px-4 py-3">Sucursal</th>
+              <th className="px-4 py-3">Serie / N°</th>
               <th className="px-4 py-3">Fecha y Hora</th>
-              <th className="px-4 py-3 text-right">Subtotal Neto</th>
-              <th className="px-4 py-3 text-right">ITBMS (7%)</th>
+              <th className="px-4 py-3 text-right">Neto sin IVA</th>
+              <th className="px-4 py-3 text-right">IVA</th>
               <th className="px-4 py-3 text-right">Total Cobrado</th>
+              <th className="px-4 py-3 text-center">Estado</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#1a2d6b]/50">
+          <tbody className="divide-y divide-slate-100">
             {filteredSales.length === 0 ? (
               <tr>
-                <td colSpan="6" className="px-4 py-8 text-center text-slate-500">
+                <td colSpan="7" className="px-4 py-8 text-center text-slate-400">
                   No se encontraron ventas para los filtros seleccionados
                 </td>
               </tr>
             ) : (
               filteredSales.slice(0, 50).map((s) => (
-                <tr key={s.id} className="hover:bg-[#111f4a]/40 transition-colors">
-                  <td className="px-4 py-2.5 font-semibold text-slate-200">
+                <tr key={s.id} className="hover:bg-slate-50/75 transition-colors">
+                  <td className="px-4 py-3 font-semibold text-slate-800">
                     {branchesMap[s.sucursal_id] || s.sucursal_id}
                   </td>
-                  <td className="px-4 py-2.5 font-mono text-amber-400 font-bold">
+                  <td className="px-4 py-3 font-mono font-bold text-slate-900">
                     {s.serie}-{s.numero}
                   </td>
-                  <td className="px-4 py-2.5 text-slate-400">
-                    {new Date(s.fecha_hora).toLocaleString('es-PA', { dateStyle: 'short', timeStyle: 'short' })}
+                  <td className="px-4 py-3 text-slate-500">
+                    {new Date(s.fecha_hora).toLocaleString('es-PA')}
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono text-slate-300">
+                  <td className="px-4 py-3 text-right font-mono text-slate-600">
                     ${Number(s.total_neto || 0).toFixed(2)}
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono text-slate-400">
+                  <td className="px-4 py-3 text-right font-mono text-slate-500">
                     ${Number(s.total_iva || 0).toFixed(2)}
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono font-bold text-emerald-400">
+                  <td className="px-4 py-3 text-right font-mono font-bold text-emerald-700">
                     ${Number(s.total || 0).toFixed(2)}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Sincronizado
+                    </span>
                   </td>
                 </tr>
               ))
@@ -121,11 +126,11 @@ export default function SalesTable({ sales = [], branchesMap = {} }) {
           </tbody>
         </table>
       </div>
-      {filteredSales.length > 50 && (
-        <p className="text-[11px] text-slate-500 mt-2 text-right">
-          Mostrando los primeros 50 registros de {filteredSales.length}. Usa Exportar CSV para el reporte completo.
-        </p>
-      )}
+
+      <div className="mt-3 text-[11px] text-slate-400 flex items-center justify-between">
+        <span>Mostrando hasta 50 tickets más recientes</span>
+        <span>Total registros: {filteredSales.length}</span>
+      </div>
     </div>
   );
 }

@@ -100,150 +100,185 @@ export default function App() {
         fromDate = new Date(now.getFullYear(), 0, 1);
       }
 
-      const fromIso = fromDate.toISOString().split('T')[0];
-      const toIso = toDate.toISOString().split('T')[0];
-
       // Query Ventas Cabecera
-      let query = supabase
+      let q = supabase
         .from('ventas_cabecera')
         .select('*')
-        .gte('fecha', fromIso)
-        .lte('fecha', toIso)
+        .gte('fecha', fromDate.toISOString().split('T')[0])
         .order('fecha_hora', { ascending: false });
 
       if (selectedBranch !== 'ALL') {
-        query = query.eq('sucursal_id', selectedBranch);
+        q = q.eq('sucursal_id', selectedBranch);
       }
 
-      const { data: salesData } = await query;
-      setSales(salesData || []);
+      const { data: salesData, error: salesErr } = await q;
 
-      // Query Detalles (Top productos)
-      const { data: detData } = await supabase.from('ventas_detalle').select('*').limit(300);
-      setDetails(detData || []);
+      if (!salesErr && salesData) {
+        setSales(salesData);
 
-      // Query Métodos de Pago
-      const { data: pagData } = await supabase.from('ventas_pagos').select('*').limit(300);
-      setPayments(pagData || []);
+        // Si hay ventas, cargar detalles y formas de pago
+        const ticketIds = salesData.map(s => s.id);
+        if (ticketIds.length > 0) {
+          const { data: detData } = await supabase
+            .from('ventas_detalle')
+            .select('*')
+            .in('venta_id', ticketIds.slice(0, 100));
+          if (detData) setDetails(detData);
 
-      // Query Cierres de Caja
-      const { data: cieData } = await supabase.from('cierres_caja').select('*').order('fecha_cierre', { ascending: false }).limit(50);
-      setCierres(cieData || []);
+          const { data: payData } = await supabase
+            .from('ventas_pagos')
+            .select('*')
+            .in('venta_id', ticketIds.slice(0, 100));
+          if (payData) setPayments(payData);
+        } else {
+          setDetails([]);
+          setPayments([]);
+        }
+      }
+
+      // Cargar Cierres Z
+      let qZ = supabase
+        .from('cierres_caja')
+        .select('*')
+        .order('fecha_cierre', { ascending: false })
+        .limit(30);
+
+      if (selectedBranch !== 'ALL') {
+        qZ = qZ.eq('sucursal_id', selectedBranch);
+      }
+
+      const { data: zData } = await qZ;
+      if (zData) setCierres(zData);
 
     } catch (err) {
-      console.error('Error fetching sales:', err);
+      console.error('Error obteniendo datos de ventas:', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (currentUser) {
-      loadInitialData();
-    }
-  }, [currentUser]);
+    loadInitialData();
+  }, []);
 
   useEffect(() => {
-    if (currentUser) {
-      fetchSalesData();
-    }
-  }, [currentUser, selectedBranch, dateRange]);
+    fetchSalesData();
+  }, [selectedBranch, dateRange]);
 
-  // Suscripción Realtime a Supabase
+  // Suscripción en Tiempo Real a nuevas ventas
   useEffect(() => {
-    if (!currentUser) return;
     const channel = supabase
-      .channel('realtime_central_goyurt')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'ventas_cabecera' }, () => {
-        fetchSalesData();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'sucursales_heartbeat' }, (payload) => {
-        if (payload.new) {
-          setHeartbeats(prev => ({ ...prev, [payload.new.sucursal_id]: payload.new }));
+      .channel('realtime_ventas')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'ventas_cabecera' },
+        (payload) => {
+          if (selectedBranch === 'ALL' || payload.new.sucursal_id === selectedBranch) {
+            setSales(prev => [payload.new, ...prev]);
+          }
         }
-      })
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'sucursales_heartbeat' },
+        (payload) => {
+          setHeartbeats(prev => ({
+            ...prev,
+            [payload.new.sucursal_id]: payload.new
+          }));
+        }
+      )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentUser, selectedBranch, dateRange]);
+  }, [selectedBranch]);
 
+  // Mapa rápido de sucursales
   const branchesMap = useMemo(() => {
     const map = {};
     branches.forEach(b => { map[b.id] = b.nombre; });
     return map;
   }, [branches]);
 
-  // Cálculos de KPIs Consolidados
+  // Cálculos de KPIs en tiempo real
   const kpis = useMemo(() => {
     const totalVentas = sales.reduce((acc, s) => acc + Number(s.total || 0), 0);
     const totalNeto = sales.reduce((acc, s) => acc + Number(s.total_neto || 0), 0);
     const totalTickets = sales.length;
-    const ticketPromedio = totalTickets > 0 ? totalVentas / totalTickets : 0;
+    const ticketPromedio = totalTickets > 0 ? (totalVentas / totalTickets) : 0;
 
+    // Sucursal con mayor venta
     const branchTotals = {};
     sales.forEach(s => {
       branchTotals[s.sucursal_id] = (branchTotals[s.sucursal_id] || 0) + Number(s.total || 0);
     });
 
     let topBranchId = null;
-    let topBranchTotal = 0;
+    let topBranchMax = 0;
     Object.entries(branchTotals).forEach(([id, tot]) => {
-      if (tot > topBranchTotal) {
-        topBranchTotal = tot;
+      if (tot > topBranchMax) {
+        topBranchMax = tot;
         topBranchId = id;
       }
     });
+
+    const topBranchName = topBranchId ? (branchesMap[topBranchId] || topBranchId) : 'N/A';
 
     return {
       totalVentas,
       totalNeto,
       totalTickets,
       ticketPromedio,
-      topBranchName: topBranchId ? (branchesMap[topBranchId] || topBranchId) : 'N/A',
-      topBranchTotal
+      topBranchName,
+      topBranchTotal: topBranchMax
     };
   }, [sales, branchesMap]);
 
-  // Comparativo por Sucursal
+  // Datos para Comparativo de Sucursales
   const branchComparisonData = useMemo(() => {
     const totals = {};
-    branches.forEach(b => { totals[b.id] = 0; });
-    sales.forEach(s => {
-      totals[s.sucursal_id] = (totals[s.sucursal_id] || 0) + Number(s.total || 0);
+    branches.forEach(b => {
+      totals[b.id] = { nombre: b.codigo ? `Sucursal ${b.codigo}` : b.nombre, total: 0, tickets: 0 };
     });
-    return branches.map(b => ({
-      nombre: b.codigo ? `Sucursal ${b.codigo}` : b.nombre,
-      total: Number((totals[b.id] || 0).toFixed(2))
-    }));
+
+    sales.forEach(s => {
+      if (!totals[s.sucursal_id]) {
+        totals[s.sucursal_id] = { nombre: s.sucursal_id, total: 0, tickets: 0 };
+      }
+      totals[s.sucursal_id].total += Number(s.total || 0);
+      totals[s.sucursal_id].tickets += 1;
+    });
+
+    return Object.values(totals);
   }, [branches, sales]);
 
-  // Ventas por Hora
+  // Datos para Ventas por Hora
   const hourlyData = useMemo(() => {
-    const hours = Array.from({ length: 24 }, (_, i) => ({
-      hora: i,
-      horaLabel: `${String(i).padStart(2, '0')}:00`,
-      total: 0,
-      tickets: 0
-    }));
+    const hours = {};
+    for (let h = 10; h <= 22; h++) {
+      hours[h] = { hora: h, horaLabel: `${h}:00`, total: 0, count: 0 };
+    }
 
     sales.forEach(s => {
-      const h = s.hora !== undefined ? s.hora : new Date(s.fecha_hora).getHours();
+      if (!s.fecha_hora) return;
+      const d = new Date(s.fecha_hora);
+      const h = d.getHours();
       if (hours[h]) {
         hours[h].total += Number(s.total || 0);
-        hours[h].tickets += 1;
+        hours[h].count += 1;
       }
     });
 
-    return hours.slice(8, 24);
+    return Object.values(hours);
   }, [sales]);
 
   // Métodos de Pago
   const paymentMethodsData = useMemo(() => {
     const counts = {};
     payments.forEach(p => {
-      const desc = p.descripcion_pago || (p.codformapago === '1' ? 'Efectivo' : 'Tarjeta');
+      const desc = p.descripcion || (p.codformapago === '1' ? 'Efectivo' : 'Tarjeta');
       counts[desc] = (counts[desc] || 0) + Number(p.importe || 0);
     });
 
@@ -289,8 +324,8 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#070f1e] text-slate-100 flex flex-col font-sans selection:bg-[#22c1b4] selection:text-[#070f1e]">
-      {/* 1. Header Oficial GOYURT */}
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-emerald-600 selection:text-white">
+      {/* 1. Header Oficial ICONWEBCONECT */}
       <Navbar
         selectedBranch={selectedBranch}
         setSelectedBranch={setSelectedBranch}
@@ -327,7 +362,7 @@ export default function App() {
                 value={`$${kpis.totalVentas.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 subtitle={`Neto sin IVA: $${kpis.totalNeto.toFixed(2)}`}
                 icon={DollarSign}
-                color="blue"
+                color="emerald"
                 trend="up"
                 trendValue="+12.4%"
               />
@@ -336,7 +371,7 @@ export default function App() {
                 value={kpis.totalTickets.toLocaleString('en-US')}
                 subtitle="Transacciones completadas"
                 icon={Receipt}
-                color="emerald"
+                color="blue"
               />
               <KpiCard
                 title="Ticket Promedio"
@@ -404,8 +439,8 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[#172d54] bg-[#070f1e] py-4 text-center text-xs text-slate-500 no-print">
-        ICONWEBCONECT-CENTRAL 🌐 — Plataforma Gerencial en la Nube para <strong>GOYURT</strong> conectada a ICG FrontRest
+      <footer className="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-500 no-print">
+        ICONWEBCONECT-CENTRAL 🌐 — Plataforma Gerencial en la Nube para <strong>GOYURT PANAMÁ</strong> conectada a ICG FrontRest
       </footer>
     </div>
   );

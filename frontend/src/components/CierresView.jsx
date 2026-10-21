@@ -4,23 +4,23 @@ import { DollarSign, CreditCard, Receipt, Calendar, ArrowUpRight } from 'lucide-
 export default function CierresView({ cierres = [], branchesMap = {} }) {
   return (
     <div className="space-y-6">
-      <div className="bg-[#0b1530] border border-[#1a2d6b] rounded-2xl p-6 shadow-xl">
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h3 className="text-lg font-black text-white flex items-center gap-2">
-              <Receipt className="w-5 h-5 text-amber-400" />
+            <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+              <Receipt className="w-5 h-5 text-emerald-600" />
               Cierres de Caja Diarios (Cortes Z)
             </h3>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500">
               Control de cuadre de cajas y arqueos sincronizados desde cada sucursal ICG
             </p>
           </div>
         </div>
 
         {/* Tabla de Cierres */}
-        <div className="overflow-x-auto rounded-xl border border-[#1a2d6b]">
-          <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-[#060d1f] text-slate-400 font-bold uppercase tracking-wider border-b border-[#1a2d6b]">
+        <div className="overflow-x-auto rounded-xl border border-slate-200">
+          <table className="w-full text-left text-xs text-slate-600">
+            <thead className="bg-slate-50 text-slate-700 font-bold uppercase tracking-wider border-b border-slate-200">
               <tr>
                 <th className="px-4 py-3">Punto de Venta</th>
                 <th className="px-4 py-3">N° Cierre</th>
@@ -31,13 +31,13 @@ export default function CierresView({ cierres = [], branchesMap = {} }) {
                 <th className="px-4 py-3 text-center">Estado Cuadre</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1a2d6b]/60">
+            <tbody className="divide-y divide-slate-100">
               {cierres.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="px-4 py-10 text-center text-slate-400">
                     <div className="max-w-md mx-auto space-y-2">
-                      <p className="font-semibold text-slate-300">Sin cierres Z registrados aún</p>
-                      <p className="text-[11px] text-slate-500">
+                      <p className="font-semibold text-slate-700">Sin cierres Z registrados aún</p>
+                      <p className="text-[11px] text-slate-400">
                         Los cortes Z se sincronizan automáticamente cada vez que el cajero realiza el cierre del día en ICG FrontRest.
                       </p>
                     </div>
@@ -45,28 +45,28 @@ export default function CierresView({ cierres = [], branchesMap = {} }) {
                 </tr>
               ) : (
                 cierres.map((c) => (
-                  <tr key={c.id} className="hover:bg-[#111f4a]/50 transition-colors">
-                    <td className="px-4 py-3 font-semibold text-white">
+                  <tr key={c.id} className="hover:bg-slate-50/75 transition-colors">
+                    <td className="px-4 py-3 font-semibold text-slate-900">
                       {branchesMap[c.sucursal_id] || c.sucursal_id}
                     </td>
-                    <td className="px-4 py-3 font-mono text-amber-400 font-bold">
+                    <td className="px-4 py-3 font-mono text-emerald-700 font-bold">
                       #{c.numcierre}
                     </td>
-                    <td className="px-4 py-3 text-slate-300">
+                    <td className="px-4 py-3 text-slate-500">
                       {new Date(c.fecha_cierre).toLocaleString('es-PA')}
                     </td>
-                    <td className="px-4 py-3 text-right font-mono text-slate-200">
+                    <td className="px-4 py-3 text-right font-mono text-slate-700">
                       ${Number(c.total_efectivo || 0).toFixed(2)}
                     </td>
-                    <td className="px-4 py-3 text-right font-mono text-slate-200">
+                    <td className="px-4 py-3 text-right font-mono text-slate-700">
                       ${Number(c.total_tarjeta || 0).toFixed(2)}
                     </td>
-                    <td className="px-4 py-3 text-right font-mono font-bold text-emerald-400 text-sm">
+                    <td className="px-4 py-3 text-right font-mono font-bold text-slate-900">
                       ${Number(c.total_ventas || 0).toFixed(2)}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                        CUADRADO
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Cuadrado OK
                       </span>
                     </td>
                   </tr>

@@ -14,7 +14,7 @@ export default function AnalyticsTabs({ activeTab, setActiveTab, userRole }) {
   const visibleTabs = tabs.filter(t => !t.adminOnly || userRole === 'ADMINISTRADOR');
 
   return (
-    <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-[#172d54] no-print">
+    <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-200 no-print">
       {visibleTabs.map((tab) => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;
@@ -25,15 +25,15 @@ export default function AnalyticsTabs({ activeTab, setActiveTab, userRole }) {
             onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all ${
               isActive
-                ? 'bg-gradient-to-r from-[#22c1b4] to-teal-600 text-[#070f1e] shadow-lg shadow-[#22c1b4]/20 font-black'
-                : 'bg-[#0b172d] text-slate-300 hover:text-white hover:bg-[#102142] border border-[#172d54]'
+                ? 'bg-[#22c1b4] text-white shadow-md shadow-teal-500/25 font-black'
+                : 'bg-white text-slate-600 hover:text-teal-700 hover:bg-teal-50/60 border border-slate-200'
             }`}
           >
-            <Icon className={`w-4 h-4 ${isActive ? 'text-[#070f1e]' : 'text-[#22c1b4]'}`} />
+            <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-teal-600'}`} />
             <span>{tab.label}</span>
             {tab.badge && (
               <span className={`text-[9px] font-black px-1.5 py-0.2 rounded-full ${
-                isActive ? 'bg-[#070f1e] text-[#22c1b4]' : 'bg-[#22c1b4]/20 text-[#22c1b4]'
+                isActive ? 'bg-white text-teal-800' : 'bg-teal-100 text-teal-800'
               }`}>
                 {tab.badge}
               </span>

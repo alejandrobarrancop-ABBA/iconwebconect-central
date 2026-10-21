@@ -4,17 +4,17 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGri
 export default function TopProductsChart({ data = [] }) {
   if (!data || data.length === 0) {
     return (
-      <div className="bg-[#0b1530] border border-[#1a2d6b] rounded-2xl p-6 shadow-xl flex flex-col items-center justify-center min-h-[300px] text-slate-500 text-xs">
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center min-h-[300px] text-slate-400 text-xs">
         Sin artículos registrados en el período
       </div>
     );
   }
 
   return (
-    <div className="bg-[#0b1530] border border-[#1a2d6b] rounded-2xl p-6 shadow-xl flex flex-col">
+    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col">
       <div className="mb-4">
-        <h3 className="text-base font-black text-white">Top 10 Productos Más Vendidos</h3>
-        <p className="text-xs text-slate-400">Ranking por unidades e ingresos generados</p>
+        <h3 className="text-base font-black text-slate-900">Top 10 Productos Más Vendidos</h3>
+        <p className="text-xs text-slate-500">Ranking por unidades e ingresos generados</p>
       </div>
 
       <div className="w-full h-72">
@@ -24,24 +24,24 @@ export default function TopProductsChart({ data = [] }) {
             data={data}
             margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#1a2d6b" opacity={0.6} />
-            <XAxis type="number" stroke="#94a3b8" fontSize={11} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+            <XAxis type="number" stroke="#64748b" fontSize={11} tickLine={false} />
             <YAxis
               type="category"
               dataKey="descripcionCorta"
-              stroke="#94a3b8"
+              stroke="#64748b"
               fontSize={11}
               tickLine={false}
               width={120}
             />
             <Tooltip
-              contentStyle={{ backgroundColor: '#060d1f', borderColor: '#1a2d6b', borderRadius: '0.75rem', color: '#fff' }}
+              contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', borderRadius: '0.75rem', color: '#0f172a', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
               formatter={(value, name) => [
                 name === 'unidades' ? `${value} unidades` : `$${Number(value).toFixed(2)}`,
                 name === 'unidades' ? 'Cantidad' : 'Ingresos Totales'
               ]}
             />
-            <Bar dataKey="unidades" fill="#8b5cf6" radius={[0, 6, 6, 0]} />
+            <Bar dataKey="unidades" fill="#10b981" radius={[0, 6, 6, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
