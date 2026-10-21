@@ -1,5 +1,16 @@
-import React from 'react';
-import { RefreshCw, Building2, BarChart3, LogOut, Shield, Lock, Star } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { 
+  RefreshCw, 
+  Building2, 
+  BarChart3, 
+  LogOut, 
+  Shield, 
+  Lock, 
+  Star, 
+  Clock, 
+  Calendar,
+  Radio
+} from 'lucide-react';
 
 export default function Navbar({
   selectedBranch,
@@ -12,35 +23,87 @@ export default function Navbar({
   currentUser,
   onLogout
 }) {
+  // Reloj y Fecha del Sistema en Tiempo Real
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Formateadores de Fecha y Hora en Español
+  const dateFormatted = now.toLocaleDateString('es-PA', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  });
+
+  const timeFormatted = now.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+
   // ADMINISTRADOR y GERENTE EJECUTIVO tienen acceso a todas las sucursales (Consolidado)
   const canViewAllBranches = currentUser?.rol === 'ADMINISTRADOR' || currentUser?.rol === 'GERENTE EJECUTIVO';
   const assignedBranch = currentUser?.sucursal;
   const assignedBranchObj = branches.find(b => b.id === assignedBranch);
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-slate-200 px-4 sm:px-8 py-3 shadow-sm">
-      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+    <header className="sticky top-0 z-50 bg-white border-b border-slate-200 px-4 sm:px-8 py-2.5 shadow-sm">
+      <div className="max-w-7xl mx-auto flex flex-col xl:flex-row xl:items-center justify-between gap-3">
         {/* 1. Marca Principal de la Aplicación: LOGO VERDE GRÁFICO ICONWEBCONECT */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-green-500 shadow-md shadow-emerald-600/25 flex items-center justify-center text-white shrink-0 border border-emerald-400">
-            <BarChart3 className="w-5 h-5 stroke-[2.5]" />
+        <div className="flex items-center justify-between xl:justify-start gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-green-500 shadow-md shadow-emerald-600/25 flex items-center justify-center text-white shrink-0 border border-emerald-400">
+              <BarChart3 className="w-5 h-5 stroke-[2.5]" />
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-base font-black text-slate-900 tracking-tight">ICONWEBCONECT</span>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200 uppercase tracking-widest">
+                  CENTRAL NUBE
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 font-medium">
+                Plataforma de Analítica & Dashboard Gerencial
+              </p>
+            </div>
           </div>
 
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-base font-black text-slate-900 tracking-tight">ICONWEBCONECT</span>
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200 uppercase tracking-widest">
-                CENTRAL NUBE
-              </span>
+          {/* 2. Reloj y Fecha del Sistema en Vivo (LLAMATIVO) */}
+          <div className="flex items-center gap-2 bg-gradient-to-r from-teal-50 via-emerald-50 to-teal-50 border border-teal-200/90 px-3.5 py-1.5 rounded-2xl shadow-sm">
+            <div className="relative flex items-center justify-center shrink-0">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping absolute" />
+              <span className="w-2 h-2 rounded-full bg-emerald-600 relative" />
             </div>
-            <p className="text-[11px] text-slate-500 font-medium">
-              Plataforma de Analítica & Dashboard Gerencial
-            </p>
+
+            <div className="flex items-center gap-2.5 text-xs">
+              {/* Fecha */}
+              <div className="flex items-center gap-1.5 text-slate-700 font-bold capitalize">
+                <Calendar className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                <span className="hidden sm:inline">{dateFormatted}</span>
+                <span className="sm:hidden">{now.toLocaleDateString('es-PA', { day: 'numeric', month: 'short' })}</span>
+              </div>
+
+              <span className="text-teal-300 font-bold">•</span>
+
+              {/* Hora Digital en Vivo */}
+              <div className="flex items-center gap-1 bg-white px-2 py-0.5 rounded-lg border border-teal-200 shadow-sm font-mono font-black text-teal-900 text-xs">
+                <Clock className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                <span>{timeFormatted}</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* 2. Filtros Ejecutivos & Perfil con Logo del Cliente */}
-        <div className="flex flex-wrap items-center gap-3">
+        {/* 3. Filtros Ejecutivos & Perfil con Logo del Cliente */}
+        <div className="flex flex-wrap items-center gap-2.5">
           {/* Selector de Sucursal con Control de Acceso por Perfil */}
           <div className="relative">
             {canViewAllBranches ? (
@@ -106,10 +169,10 @@ export default function Navbar({
             <span className="hidden sm:inline">Actualizar</span>
           </button>
 
-          {/* 3. Área del Cliente & Usuario: LOGO DEL CLIENTE (GOYURT) + CUENTA + CERRAR SESIÓN */}
+          {/* 4. Área del Cliente & Usuario: LOGO DEL CLIENTE (GOYURT) + CUENTA + CERRAR SESIÓN */}
           {currentUser && (
-            <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
-              {/* Logo del Cliente (GOYURT) colocado en la sección de usuario */}
+            <div className="flex items-center gap-3 pl-2.5 border-l border-slate-200">
+              {/* Logo del Cliente (GOYURT) */}
               <div className="bg-white px-2.5 py-1 rounded-xl border border-slate-200 shadow-sm flex items-center justify-center" title="Empresa: GOYURT PANAMÁ">
                 <img
                   src="/goyurt-logo.png"

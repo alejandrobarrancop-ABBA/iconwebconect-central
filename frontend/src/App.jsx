@@ -453,9 +453,14 @@ export default function App() {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-500 no-print">
-        ICONWEBCONECT-CENTRAL 🌐 — Plataforma Gerencial en la Nube para <strong>GOYURT PANAMÁ</strong> conectada a ICG FrontRest
+      {/* Footer Oficial */}
+      <footer className="border-t border-slate-200 bg-white py-4 px-4 text-center text-xs text-slate-500 no-print space-y-1">
+        <div className="font-bold tracking-tight text-slate-700">
+          DESARROLLADO POR GRUPO VEV, S.A. — DISTRIBUIDO POR ABBA INNOVATION S.A. PANAMÁ
+        </div>
+        <div className="text-[11px] font-black text-teal-700 uppercase tracking-wider">
+          ICONWEBCONECT CENTRAL 2026 V.1.0 • Plataforma en la Nube conectada a ICG FrontRest
+        </div>
       </footer>
     </div>
   );

@@ -207,6 +207,16 @@ export default function Login({ onLoginSuccess }) {
             <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">GERENTE / 1234</span>
           </div>
         </div>
+
+        {/* Pie de Login Oficial */}
+        <div className="mt-6 pt-4 border-t border-slate-100 text-center text-[10px] text-slate-500 space-y-0.5">
+          <div className="font-bold tracking-tight text-slate-600">
+            DESARROLLADO POR GRUPO VEV, S.A. — DISTRIBUIDO POR ABBA INNOVATION S.A. PANAMÁ
+          </div>
+          <div className="font-black text-teal-700 uppercase tracking-wider text-[10px]">
+            ICONWEBCONECT CENTRAL 2026 V.1.0
+          </div>
+        </div>
       </div>
     </div>
   );
