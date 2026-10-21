@@ -12,7 +12,9 @@ import TopProductsChart from './components/TopProductsChart';
 import SalesTable from './components/SalesTable';
 import CierresView from './components/CierresView';
 import ConfigView from './components/ConfigView';
-import { DollarSign, Receipt, TrendingUp, Trophy, AlertCircle } from 'lucide-react';
+import AIReportBuilder from './components/AIReportBuilder';
+import UsersManagementView from './components/UsersManagementView';
+import { DollarSign, Receipt, TrendingUp, Trophy } from 'lucide-react';
 
 export default function App() {
   // 1. Estado de Autenticación
@@ -38,7 +40,6 @@ export default function App() {
   const [payments, setPayments] = useState([]);
   const [cierres, setCierres] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState(null);
 
   const handleLogout = () => {
     localStorage.removeItem('iconweb_user');
@@ -77,7 +78,6 @@ export default function App() {
   // Cargar Ventas según filtros
   const fetchSalesData = async () => {
     setLoading(true);
-    setErrorMsg(null);
     try {
       const now = new Date();
       let fromDate = new Date();
@@ -119,11 +119,11 @@ export default function App() {
       setSales(salesData || []);
 
       // Query Detalles (Top productos)
-      const { data: detData } = await supabase.from('ventas_detalle').select('*').limit(200);
+      const { data: detData } = await supabase.from('ventas_detalle').select('*').limit(300);
       setDetails(detData || []);
 
       // Query Métodos de Pago
-      const { data: pagData } = await supabase.from('ventas_pagos').select('*').limit(200);
+      const { data: pagData } = await supabase.from('ventas_pagos').select('*').limit(300);
       setPayments(pagData || []);
 
       // Query Cierres de Caja
@@ -153,7 +153,7 @@ export default function App() {
   useEffect(() => {
     if (!currentUser) return;
     const channel = supabase
-      .channel('realtime_central')
+      .channel('realtime_central_goyurt')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'ventas_cabecera' }, () => {
         fetchSalesData();
       })
@@ -289,8 +289,8 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#060d1f] text-slate-100 flex flex-col font-sans">
-      {/* 1. Header Oficial ICONWEBCONECT */}
+    <div className="min-h-screen bg-[#070f1e] text-slate-100 flex flex-col font-sans selection:bg-[#22c1b4] selection:text-[#070f1e]">
+      {/* 1. Header Oficial GOYURT */}
       <Navbar
         selectedBranch={selectedBranch}
         setSelectedBranch={setSelectedBranch}
@@ -313,7 +313,9 @@ export default function App() {
         />
 
         {/* Banner de Estado de Puntos de Venta */}
-        <BranchStatusPill branches={branches} heartbeats={heartbeats} />
+        <div className="no-print">
+          <BranchStatusPill branches={branches} heartbeats={heartbeats} />
+        </div>
 
         {/* VISTA 1: DASHBOARD EJECUTIVO */}
         {activeTab === 'dashboard' && (
@@ -332,7 +334,7 @@ export default function App() {
               <KpiCard
                 title="Tickets Emitidos"
                 value={kpis.totalTickets.toLocaleString('en-US')}
-                subtitle="Transacciones registradas"
+                subtitle="Transacciones completadas"
                 icon={Receipt}
                 color="emerald"
               />
@@ -365,25 +367,41 @@ export default function App() {
           </div>
         )}
 
-        {/* VISTA 2: VENTAS & AUDITORÍA */}
+        {/* VISTA 2: CREADOR DE REPORTES CON IA */}
+        {activeTab === 'ai-reports' && (
+          <AIReportBuilder
+            sales={sales}
+            details={details}
+            cierres={cierres}
+            branches={branches}
+            branchesMap={branchesMap}
+          />
+        )}
+
+        {/* VISTA 3: VENTAS & AUDITORÍA */}
         {activeTab === 'ventas' && (
           <SalesTable sales={sales} branchesMap={branchesMap} />
         )}
 
-        {/* VISTA 3: CIERRES DE CAJA (CORTES Z) */}
+        {/* VISTA 4: CIERRES DE CAJA (CORTES Z) */}
         {activeTab === 'cierres' && (
           <CierresView cierres={cierres} branchesMap={branchesMap} />
         )}
 
-        {/* VISTA 4: CONFIGURACIÓN Y CONECTORES */}
+        {/* VISTA 5: GESTIÓN DE USUARIOS */}
+        {activeTab === 'usuarios' && (
+          <UsersManagementView branches={branches} />
+        )}
+
+        {/* VISTA 6: CONFIGURACIÓN Y CONECTORES */}
         {activeTab === 'config' && (
           <ConfigView branches={branches} heartbeats={heartbeats} />
         )}
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[#1a2d6b] bg-[#060d1f] py-4 text-center text-xs text-slate-500">
-        ICONWEBCONECT-CENTRAL 🌐 — Plataforma Gerencial en la Nube conectada a ICG FrontRest
+      <footer className="border-t border-[#172d54] bg-[#070f1e] py-4 text-center text-xs text-slate-500 no-print">
+        ICONWEBCONECT-CENTRAL 🌐 — Plataforma Gerencial en la Nube para <strong>GOYURT</strong> conectada a ICG FrontRest
       </footer>
     </div>
   );
