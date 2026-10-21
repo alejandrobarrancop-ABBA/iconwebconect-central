@@ -395,7 +395,11 @@ export default function App() {
 
         {/* VISTA 6: CONFIGURACIÓN Y CONECTORES */}
         {activeTab === 'config' && (
-          <ConfigView branches={branches} heartbeats={heartbeats} />
+          <ConfigView
+            branches={branches}
+            heartbeats={heartbeats}
+            onBranchesUpdated={setBranches}
+          />
         )}
       </main>
 
