@@ -172,12 +172,12 @@ export default function Navbar({
           {/* 4. Área del Cliente & Usuario: LOGO DEL CLIENTE (GOYURT) + CUENTA + CERRAR SESIÓN */}
           {currentUser && (
             <div className="flex items-center gap-3 pl-2.5 border-l border-slate-200">
-              {/* Logo del Cliente (GOYURT) */}
-              <div className="bg-white px-2.5 py-1 rounded-xl border border-slate-200 shadow-sm flex items-center justify-center" title="Empresa: GOYURT PANAMÁ">
+              {/* Logo del Cliente (GOYURT) - Ampliado y Visible */}
+              <div className="bg-white px-3.5 py-1.5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-center shrink-0" title="Empresa: GOYURT PANAMÁ">
                 <img
                   src="/goyurt-logo.png"
                   alt="Goyurt Panamá"
-                  className="h-6 w-auto object-contain"
+                  className="h-9 w-auto object-contain"
                   onError={(e) => {
                     e.target.style.display = 'none';
                   }}
