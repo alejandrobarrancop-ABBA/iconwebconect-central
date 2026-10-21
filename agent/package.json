@@ -10,6 +10,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
     "dotenv": "^16.4.7",
-    "mssql": "^10.0.4"
+    "mssql": "^10.0.4",
+    "tedious": "^20.3.8"
   }
 }

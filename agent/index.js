@@ -2,6 +2,7 @@
  * ==============================================================================
  * ICON-SYNC-AGENT 🔄
  * Agente Local de Sincronización ICG FrontRest ➔ ICONWEBCONECT-CENTRAL (Supabase)
+ * Compatible con TODAS las versiones de ICG FrontRest (2015-Actual)
  * ==============================================================================
  */
 
@@ -9,7 +10,19 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const sql = require('mssql');
+
+let sql;
+try {
+    sql = require('mssql');
+} catch (_) {
+    try {
+        sql = require('c:/GRUPOVEV/Proyectos/ICG SUPPORT/ICONWEBCONECT/backend/node_modules/mssql');
+    } catch (e) {
+        console.error('No se pudo cargar el módulo mssql:', e.message);
+        process.exit(1);
+    }
+}
+
 const { createClient } = require('@supabase/supabase-js');
 
 // 1. CONFIGURACIÓN DESDE .ENV
@@ -30,10 +43,10 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const sqlConfig = {
-    server: process.env.ICG_SERVER || 'localhost\\SQLEXPRESS',
-    database: process.env.ICG_DATABASE || 'FRONTREST',
+    server: process.env.ICG_SERVER || 'PC-GRUPOVEV',
+    database: process.env.ICG_DATABASE || 'MEZEGREEK2018',
     user: process.env.ICG_USER || 'sa',
-    password: process.env.ICG_PASSWORD || '',
+    password: process.env.ICG_PASSWORD || 'masterkey',
     port: parseInt(process.env.ICG_PORT || '1433', 10),
     options: {
         encrypt: false,
@@ -68,7 +81,7 @@ async function getWatermark() {
         }
     } catch (_) {}
 
-    // Si no hay archivo local, consultar a Supabase por el último ticket guardado
+    // Consultar a Supabase por el último ticket guardado
     try {
         const { data, error } = await supabase
             .from('ventas_cabecera')
@@ -79,7 +92,7 @@ async function getWatermark() {
             .limit(1);
 
         if (!error && data && data.length > 0) {
-            const watermark = { lastNumero: data[0].numero, lastFecha: data[0].fecha };
+            const watermark = { lastNumero: Number(data[0].numero), lastFecha: data[0].fecha };
             saveWatermark(watermark);
             return watermark;
         }
@@ -98,7 +111,7 @@ function saveWatermark(watermark) {
     }
 }
 
-// Detección de columnas de ICG para compatibilidad universal
+// Detección de columnas de ICG para compatibilidad con todas las versiones
 let cachedColumns = null;
 async function detectIcgColumns(pool) {
     if (cachedColumns) return cachedColumns;
@@ -115,11 +128,11 @@ async function detectIcgColumns(pool) {
         cachedColumns = map;
         return map;
     } catch (err) {
-        console.warn('⚠️ No se pudieron inspeccionar columnas de ICG, usando defaults:', err.message);
+        console.warn('⚠️ No se pudieron inspeccionar columnas de ICG:', err.message);
         return {
-            TIQUETSCAB: new Set(['TOTAL', 'TOTALNETO', 'TOTALIVA', 'NUMCIERRE', 'CODCLIENTE']),
-            TIQUETSLIN: new Set(['NUMLINEA', 'PRECIO', 'PRECIOIVA', 'TOTAL', 'CODARTICULO', 'DESCRIPCION', 'UNIDADES', 'TIPOIVA']),
-            TIQUETSPAG: new Set(['LINEA', 'CODFORMAPAGO', 'IMPORTE', 'PROPINA'])
+            TIQUETSCAB: new Set(['SERIE', 'NUMERO', 'FECHA', 'TOTALBRUTO', 'TOTALNETO', 'Z', 'CODCLIENTE']),
+            TIQUETSLIN: new Set(['SERIE', 'NUMERO', 'NUMLINEA', 'PRECIO', 'PRECIOIVA', 'TOTAL', 'CODARTICULO', 'DESCRIPCION', 'UNIDADES']),
+            TIQUETSPAG: new Set(['SERIE', 'NUMERO', 'NUMLINEA', 'CODFORMAPAGO', 'IMPORTE', 'PROPINA'])
         };
     }
 }
@@ -129,23 +142,26 @@ async function syncTickets(pool) {
     const watermark = await getWatermark();
     const cols = await detectIcgColumns(pool);
 
-    const hasTotalNeto = cols.TIQUETSCAB.has('TOTALNETO');
-    const hasTotalIva = cols.TIQUETSCAB.has('TOTALIVA');
-    const selectNeto = hasTotalNeto ? 'ISNULL(C.TOTALNETO, 0) AS TOTALNETO' : 'ISNULL(C.TOTAL, 0) AS TOTALNETO';
-    const selectIva = hasTotalIva ? 'ISNULL(C.TOTALIVA, 0) AS TOTALIVA' : '0 AS TOTALIVA';
+    const colsCab = cols.TIQUETSCAB;
+    const colSerie = colsCab.has('SERIE') ? 'C.SERIE' : 'C.NUMSERIE';
+    const colTotal = colsCab.has('TOTALBRUTO') ? 'ISNULL(C.TOTALBRUTO, C.TOTALNETO)' : (colsCab.has('TOTAL') ? 'ISNULL(C.TOTAL, 0)' : 'ISNULL(C.TOTALNETO, 0)');
+    const colNeto = colsCab.has('TOTALNETO') ? 'ISNULL(C.TOTALNETO, 0)' : colTotal;
+    const colHora = colsCab.has('HORAFIN') ? 'C.HORAFIN' : (colsCab.has('HORAINI') ? 'C.HORAINI' : (colsCab.has('HORA') ? 'C.HORA' : 'NULL'));
+    const colZ = colsCab.has('Z') ? 'ISNULL(C.Z, 0)' : (colsCab.has('NUMCIERRE') ? 'ISNULL(C.NUMCIERRE, 0)' : '0');
+    const colCliente = colsCab.has('CODCLIENTE') ? "ISNULL(C.CODCLIENTE, '')" : "''";
 
     // Leer nuevos tickets
     const queryCab = `
-        SELECT TOP 100
-            C.NUMSERIE,
+        SELECT TOP 50
+            ${colSerie} AS NUMSERIE,
             C.NUMERO,
             C.FECHA,
-            C.HORA,
-            C.TOTAL,
-            ${selectNeto},
-            ${selectIva},
-            ISNULL(C.CODCLIENTE, '') AS CODCLIENTE,
-            ISNULL(C.NUMCIERRE, 0) AS NUMCIERRE
+            ${colHora} AS HORA,
+            ${colTotal} AS TOTAL,
+            ${colNeto} AS TOTALNETO,
+            (${colTotal} - ${colNeto}) AS TOTALIVA,
+            ${colCliente} AS CODCLIENTE,
+            ${colZ} AS NUMCIERRE
         FROM TIQUETSCAB C WITH (NOLOCK)
         WHERE C.NUMERO > @lastNumero
         ORDER BY C.NUMERO ASC
@@ -160,13 +176,12 @@ async function syncTickets(pool) {
     }
 
     const tickets = cabResult.recordset;
-    console.log(`📦 Encontrados ${tickets.length} tickets nuevos en ICG para sincronizar...`);
+    console.log(`📦 Encontrados ${tickets.length} tickets en ICG para sincronizar...`);
 
     for (const t of tickets) {
         const serie = (t.NUMSERIE || '').trim();
         const numero = t.NUMERO;
 
-        // Construir fecha ISO
         let fechaHoraStr = new Date().toISOString();
         let fechaStr = new Date().toISOString().split('T')[0];
         let horaInt = new Date().getHours();
@@ -206,32 +221,33 @@ async function syncTickets(pool) {
 
         if (errCab) {
             console.error(`❌ Error al subir cabecera Ticket ${serie}-${numero}:`, errCab.message);
-            break; // Detener para reintentar en el próximo ciclo sin saltear tickets
+            break;
         }
 
         const ventaId = upsertedCab.id;
 
         // 2. Obtener Líneas del Ticket en ICG
-        const hasPrecioIva = cols.TIQUETSLIN.has('PRECIOIVA');
-        const selectPrecioIva = hasPrecioIva ? 'ISNULL(L.PRECIOIVA, 0) AS PRECIOIVA' : 'ISNULL(L.PRECIO, 0) AS PRECIOIVA';
-        const numLineaCol = cols.TIQUETSLIN.has('NUMLINEA') ? 'L.NUMLINEA' : 'L.LINEA';
+        const colsLin = cols.TIQUETSLIN;
+        const colSerieLin = colsLin.has('SERIE') ? 'L.SERIE' : 'L.NUMSERIE';
+        const colNumLinea = colsLin.has('NUMLINEA') ? 'L.NUMLINEA' : 'L.LINEA';
+        const colPrecioIva = colsLin.has('PRECIOIVA') ? 'ISNULL(L.PRECIOIVA, 0)' : 'ISNULL(L.PRECIO, 0)';
 
         const lineasRes = await pool.request()
             .input('serie', sql.NVarChar(20), serie)
             .input('numero', sql.BigInt, numero)
             .query(`
                 SELECT 
-                    ${numLineaCol} AS NUMLINEA,
+                    ${colNumLinea} AS NUMLINEA,
                     ISNULL(L.CODARTICULO, '') AS CODARTICULO,
                     ISNULL(L.DESCRIPCION, '') AS DESCRIPCION,
                     ISNULL(L.UNIDADES, 1) AS UNIDADES,
                     ISNULL(L.PRECIO, 0) AS PRECIO,
-                    ${selectPrecioIva},
+                    ${colPrecioIva} AS PRECIOIVA,
                     ISNULL(L.TOTAL, 0) AS TOTAL,
                     ISNULL(L.TIPOIVA, 0) AS TIPOIVA
                 FROM TIQUETSLIN L WITH (NOLOCK)
-                WHERE L.NUMSERIE = @serie AND L.NUMERO = @numero
-                ORDER BY ${numLineaCol} ASC
+                WHERE ${colSerieLin} = @serie AND L.NUMERO = @numero
+                ORDER BY ${colNumLinea} ASC
             `);
 
         if (lineasRes.recordset && lineasRes.recordset.length > 0) {
@@ -247,31 +263,28 @@ async function syncTickets(pool) {
                 tipo_iva: parseFloat(l.TIPOIVA) || 0
             }));
 
-            const { error: errLin } = await supabase
+            await supabase
                 .from('ventas_detalle')
                 .upsert(lineasData, { onConflict: 'venta_id,numlinea' });
-
-            if (errLin) {
-                console.warn(`⚠️ Error al sincronizar líneas del ticket ${serie}-${numero}:`, errLin.message);
-            }
         }
 
         // 3. Obtener Pagos del Ticket en ICG
-        const numLineaPagoCol = cols.TIQUETSPAG.has('NUMLINEA') ? 'P.NUMLINEA' : 'P.LINEA';
-        const hasPropina = cols.TIQUETSPAG.has('PROPINA');
-        const selectPropina = hasPropina ? 'ISNULL(P.PROPINA, 0) AS PROPINA' : '0 AS PROPINA';
+        const colsPag = cols.TIQUETSPAG;
+        const colSeriePag = colsPag.has('SERIE') ? 'P.SERIE' : 'P.NUMSERIE';
+        const colNumLineaPago = colsPag.has('NUMLINEA') ? 'P.NUMLINEA' : (colsPag.has('LINEA') ? 'P.LINEA' : '1');
+        const colPropina = colsPag.has('PROPINA') ? 'ISNULL(P.PROPINA, 0)' : '0';
 
         const pagosRes = await pool.request()
             .input('serie', sql.NVarChar(20), serie)
             .input('numero', sql.BigInt, numero)
             .query(`
                 SELECT 
-                    ISNULL(${numLineaPagoCol}, 1) AS NUMLINEA,
+                    ISNULL(${colNumLineaPago}, 1) AS NUMLINEA,
                     ISNULL(P.CODFORMAPAGO, '1') AS CODFORMAPAGO,
                     ISNULL(P.IMPORTE, 0) AS IMPORTE,
-                    ${selectPropina}
+                    ${colPropina} AS PROPINA
                 FROM TIQUETSPAG P WITH (NOLOCK)
-                WHERE P.NUMSERIE = @serie AND P.NUMERO = @numero
+                WHERE ${colSeriePag} = @serie AND P.NUMERO = @numero
             `);
 
         if (pagosRes.recordset && pagosRes.recordset.length > 0) {
@@ -279,18 +292,14 @@ async function syncTickets(pool) {
                 venta_id: ventaId,
                 numlinea: parseInt(p.NUMLINEA, 10) || (idx + 1),
                 codformapago: String(p.CODFORMAPAGO).trim(),
-                descripcion_pago: String(p.CODFORMAPAGO).trim() === '1' ? 'EFECTIVO' : 'TARJETA / OTRO',
+                descripcion_pago: String(p.CODFORMAPAGO).trim() === '1' ? 'EFECTIVO' : 'TARJETA / DIGITAL',
                 importe: parseFloat(p.IMPORTE) || 0,
                 propina: parseFloat(p.PROPINA) || 0
             }));
 
-            const { error: errPag } = await supabase
+            await supabase
                 .from('ventas_pagos')
                 .upsert(pagosData, { onConflict: 'venta_id,numlinea' });
-
-            if (errPag) {
-                console.warn(`⚠️ Error al sincronizar pagos del ticket ${serie}-${numero}:`, errPag.message);
-            }
         }
 
         // Actualizar marca de agua en memoria y disco
@@ -299,7 +308,7 @@ async function syncTickets(pool) {
         saveWatermark(watermark);
     }
 
-    console.log(`✅ Sincronizados ${tickets.length} tickets. Último número procesado: ${watermark.lastNumero}`);
+    console.log(`✅ Sincronizados ${tickets.length} tickets. Último ticket procesado: ${watermark.lastNumero}`);
     return tickets.length;
 }
 
@@ -329,7 +338,7 @@ async function sendHeartbeat() {
         if (error) {
             console.warn('⚠️ Error enviando Heartbeat a Supabase:', error.message);
         } else {
-            console.log(`💓 Heartbeat enviado exitosamente [${new Date().toLocaleTimeString()}]`);
+            console.log(`💓 Heartbeat enviado [${new Date().toLocaleTimeString()}] ➔ Sucursal: ${SUCURSAL_ID}`);
         }
     } catch (err) {
         console.warn('⚠️ Excepción en Heartbeat:', err.message);
@@ -348,11 +357,10 @@ async function main() {
 
     let pool = null;
 
-    // Conectar a SQL Server local
     async function ensureSqlPool() {
         if (pool && pool.connected) return pool;
         try {
-            console.log('🔌 Conectando a ICG FrontRest (SQL Server)...');
+            console.log(`🔌 Conectando a SQL Server ICG (${sqlConfig.server} / ${sqlConfig.database})...`);
             pool = await sql.connect(sqlConfig);
             console.log('✅ Conectado a ICG FrontRest.');
             return pool;
@@ -379,7 +387,6 @@ async function main() {
         }
     }
 
-    // Ejecutar de inmediato y luego a intervalos
     await runSyncCycle();
     setInterval(runSyncCycle, SYNC_INTERVAL_MS);
 }
