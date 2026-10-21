@@ -38,14 +38,14 @@ export default function SalesTable({ sales = [], branchesMap = {} }) {
   };
 
   return (
-    <div className="bg-slate-800/90 border border-slate-700/70 rounded-2xl p-5 shadow-lg flex flex-col">
+    <div className="bg-[#0b1530] border border-[#1a2d6b] rounded-2xl p-6 shadow-xl flex flex-col">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div>
-          <h3 className="text-base font-bold text-white flex items-center gap-2">
-            <FileText className="w-4 h-4 text-emerald-400" />
+          <h3 className="text-base font-black text-white flex items-center gap-2">
+            <FileText className="w-4 h-4 text-amber-400" />
             Auditoría de Ventas y Tickets Sincronizados
           </h3>
-          <p className="text-xs text-slate-400">Detalle transaccional en tiempo real desde las cajas locales</p>
+          <p className="text-xs text-slate-400">Detalle transaccional en tiempo real desde las cajas locales de ICG</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -57,7 +57,7 @@ export default function SalesTable({ sales = [], branchesMap = {} }) {
               placeholder="Buscar por ticket o sucursal..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl pl-8 pr-3 py-1.5 focus:outline-none focus:border-emerald-500 w-48 sm:w-64"
+              className="bg-[#060d1f] border border-[#1a2d6b] text-slate-200 text-xs rounded-xl pl-8 pr-3 py-1.5 focus:outline-none focus:border-blue-500 w-48 sm:w-64"
             />
           </div>
 
@@ -65,7 +65,7 @@ export default function SalesTable({ sales = [], branchesMap = {} }) {
           <button
             onClick={exportToCsv}
             disabled={filteredSales.length === 0}
-            className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-all shadow-sm disabled:opacity-50"
+            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all shadow-sm disabled:opacity-50"
             title="Exportar a CSV para Excel"
           >
             <Download className="w-3.5 h-3.5" />
@@ -75,9 +75,9 @@ export default function SalesTable({ sales = [], branchesMap = {} }) {
       </div>
 
       {/* Tabla de Resultados */}
-      <div className="overflow-x-auto rounded-xl border border-slate-700/60">
+      <div className="overflow-x-auto rounded-xl border border-[#1a2d6b]">
         <table className="w-full text-left text-xs text-slate-300">
-          <thead className="bg-slate-900/80 text-slate-400 font-semibold uppercase tracking-wider border-b border-slate-700/60">
+          <thead className="bg-[#060d1f] text-slate-400 font-bold uppercase tracking-wider border-b border-[#1a2d6b]">
             <tr>
               <th className="px-4 py-3">Punto de Venta / Sucursal</th>
               <th className="px-4 py-3">Serie y Ticket</th>
@@ -87,7 +87,7 @@ export default function SalesTable({ sales = [], branchesMap = {} }) {
               <th className="px-4 py-3 text-right">Total Cobrado</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-700/40">
+          <tbody className="divide-y divide-[#1a2d6b]/50">
             {filteredSales.length === 0 ? (
               <tr>
                 <td colSpan="6" className="px-4 py-8 text-center text-slate-500">
@@ -96,23 +96,23 @@ export default function SalesTable({ sales = [], branchesMap = {} }) {
               </tr>
             ) : (
               filteredSales.slice(0, 50).map((s) => (
-                <tr key={s.id} className="hover:bg-slate-700/30 transition-colors">
-                  <td className="px-4 py-2.5 font-medium text-slate-200">
+                <tr key={s.id} className="hover:bg-[#111f4a]/40 transition-colors">
+                  <td className="px-4 py-2.5 font-semibold text-slate-200">
                     {branchesMap[s.sucursal_id] || s.sucursal_id}
                   </td>
-                  <td className="px-4 py-2.5 font-mono text-emerald-400 font-bold">
+                  <td className="px-4 py-2.5 font-mono text-amber-400 font-bold">
                     {s.serie}-{s.numero}
                   </td>
                   <td className="px-4 py-2.5 text-slate-400">
                     {new Date(s.fecha_hora).toLocaleString('es-PA', { dateStyle: 'short', timeStyle: 'short' })}
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono">
+                  <td className="px-4 py-2.5 text-right font-mono text-slate-300">
                     ${Number(s.total_neto || 0).toFixed(2)}
                   </td>
                   <td className="px-4 py-2.5 text-right font-mono text-slate-400">
                     ${Number(s.total_iva || 0).toFixed(2)}
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono font-bold text-white">
+                  <td className="px-4 py-2.5 text-right font-mono font-bold text-emerald-400">
                     ${Number(s.total || 0).toFixed(2)}
                   </td>
                 </tr>

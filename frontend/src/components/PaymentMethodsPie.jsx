@@ -1,22 +1,22 @@
 import React from 'react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 
-const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6'];
+const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
 
 export default function PaymentMethodsPie({ data = [] }) {
   if (!data || data.length === 0) {
     return (
-      <div className="bg-slate-800/90 border border-slate-700/70 rounded-2xl p-5 shadow-lg flex flex-col items-center justify-center min-h-[300px] text-slate-500">
+      <div className="bg-[#0b1530] border border-[#1a2d6b] rounded-2xl p-6 shadow-xl flex flex-col items-center justify-center min-h-[300px] text-slate-500 text-xs">
         Sin transacciones de pago en el período
       </div>
     );
   }
 
   return (
-    <div className="bg-slate-800/90 border border-slate-700/70 rounded-2xl p-5 shadow-lg flex flex-col">
+    <div className="bg-[#0b1530] border border-[#1a2d6b] rounded-2xl p-6 shadow-xl flex flex-col">
       <div className="mb-4">
-        <h3 className="text-base font-bold text-white">Distribución por Método de Pago</h3>
-        <p className="text-xs text-slate-400">Efectivo vs Tarjetas vs Pagos Móviles</p>
+        <h3 className="text-base font-black text-white">Distribución por Método de Pago</h3>
+        <p className="text-xs text-slate-400">Efectivo vs Tarjetas vs Pagos Digitales</p>
       </div>
 
       <div className="w-full h-64">
@@ -36,7 +36,7 @@ export default function PaymentMethodsPie({ data = [] }) {
               ))}
             </Pie>
             <Tooltip
-              contentStyle={{ backgroundColor: '#1e293b', borderColor: '#475569', borderRadius: '0.75rem', color: '#fff' }}
+              contentStyle={{ backgroundColor: '#060d1f', borderColor: '#1a2d6b', borderRadius: '0.75rem', color: '#fff' }}
               formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Monto Total']}
             />
             <Legend verticalAlign="bottom" height={36} iconType="circle" />

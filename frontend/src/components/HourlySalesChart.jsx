@@ -3,22 +3,22 @@ import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianG
 
 export default function HourlySalesChart({ data = [] }) {
   return (
-    <div className="bg-slate-800/90 border border-slate-700/70 rounded-2xl p-5 shadow-lg flex flex-col">
+    <div className="bg-[#0b1530] border border-[#1a2d6b] rounded-2xl p-6 shadow-xl flex flex-col">
       <div className="mb-4">
-        <h3 className="text-base font-bold text-white">Curva de Afluencia y Ventas por Hora</h3>
-        <p className="text-xs text-slate-400">Identificación de horas pico operativas (10:00 a 22:00)</p>
+        <h3 className="text-base font-black text-white">Curva de Afluencia y Horas Pico</h3>
+        <p className="text-xs text-slate-400">Tráfico y montos vendidos por hora (10:00 a 22:00)</p>
       </div>
 
       <div className="w-full h-64">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
             <defs>
-              <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+              <linearGradient id="colorSalesCentral" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.6} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#1a2d6b" opacity={0.6} />
             <XAxis dataKey="horaLabel" stroke="#94a3b8" fontSize={12} tickLine={false} />
             <YAxis
               stroke="#94a3b8"
@@ -27,10 +27,10 @@ export default function HourlySalesChart({ data = [] }) {
               tickFormatter={(v) => `$${v}`}
             />
             <Tooltip
-              contentStyle={{ backgroundColor: '#1e293b', borderColor: '#475569', borderRadius: '0.75rem', color: '#fff' }}
+              contentStyle={{ backgroundColor: '#060d1f', borderColor: '#1a2d6b', borderRadius: '0.75rem', color: '#fff' }}
               formatter={(value, name) => [name === 'total' ? `$${Number(value).toFixed(2)}` : value, name === 'total' ? 'Monto Vendido' : 'Tickets']}
             />
-            <Area type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorSales)" />
+            <Area type="monotone" dataKey="total" stroke="#f59e0b" strokeWidth={2.5} fillOpacity={1} fill="url(#colorSalesCentral)" />
           </AreaChart>
         </ResponsiveContainer>
       </div>
