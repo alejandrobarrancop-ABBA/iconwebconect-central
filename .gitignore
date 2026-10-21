@@ -1,0 +1,34 @@
+# Dependencias
+node_modules/
+.pnp
+.pnp.js
+
+# Producción y builds
+dist/
+build/
+.output/
+
+# Variables de entorno locales
+.env
+.env.local
+.env.production
+.env.development
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Vercel
+.vercel
+
+# Editor y SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Estado local del agente de sincronización
+agent/sync_state.json

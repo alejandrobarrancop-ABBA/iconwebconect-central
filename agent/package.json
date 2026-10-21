@@ -1,0 +1,15 @@
+{
+  "name": "icon-sync-agent",
+  "version": "1.0.0",
+  "description": "Agente local ligero de sincronización ICG FrontRest a ICONWEBCONECT-CENTRAL (Supabase)",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node test-connection.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.1",
+    "dotenv": "^16.4.7",
+    "mssql": "^10.0.4"
+  }
+}
