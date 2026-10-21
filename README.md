@@ -57,3 +57,5 @@ Consolidar en la nube (Vercel + Supabase) la información de ventas, cobros, art
 - **Sucursal 1:** Local 1 (1 Caja ICG FrontRest)
 - **Sucursal 2:** Local 2 (1 Caja ICG FrontRest)
 - **Escalabilidad:** Diseñado para soportar múltiples cajas por sucursal y crecimiento a $N$ sucursales sin cambios de arquitectura.
+
+<!-- Deployment trigger 2026-10-21 16:33:43 -->
