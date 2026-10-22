@@ -1,12 +1,12 @@
-import { createClient } from '@supabase/supabase-js';
+// Servidor Serverless de Validación de Licencias Online
+// Compatible con Vercel Serverless Functions y Node 18+ nativo (sin dependencias externas requeridas)
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://edsdmewyiahhrkyngunp.supabase.co';
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkc2RtZXd5aWFoaHJreW5ndW5wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI2MDUzNTgsImV4cCI6MjEwODE4MTM1OH0.maSB2H-VvOffzevas6DsdRQyTsWakUJkQ5tj2-8Q3LM';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://edsdmewyiahhrkyngunp.supabase.co';
+const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkc2RtZXd5aWFoaHJreW5ndW5wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI2MDUzNTgsImV4cCI6MjEwODE4MTM1OH0.maSB2H-VvOffzevas6DsdRQyTsWakUJkQ5tj2-8Q3LM';
 
 export default async function handler(req, res) {
-  // Configuración CORS
-  res.setHeader('Access-Control-Allow-Credentials', true);
+  // Configuración CORS completa para peticiones desde FrontRest local, navegador o postman
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
@@ -16,10 +16,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    const licenseKey = req.query.key || req.body?.license_key || req.body?.key || req.query.token || req.body?.token;
-    const hardwareId = req.body?.hardware_id || req.query.hardware_id || 'UNKNOWN-HW';
-    const machineName = req.body?.machine_name || req.query.machine_name || 'POS-TERMINAL';
-    const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
+    const licenseKey = req.query?.key || req.body?.license_key || req.body?.key || req.query?.token || req.body?.token;
+    const hardwareId = req.body?.hardware_id || req.query?.hardware_id || 'UNKNOWN-HW';
+    const machineName = req.body?.machine_name || req.query?.machine_name || 'POS-TERMINAL';
+    const ip = req.headers?.['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
 
     if (!licenseKey) {
       return res.status(400).json({
@@ -31,23 +31,30 @@ export default async function handler(req, res) {
 
     const cleanKey = licenseKey.trim();
 
-    // 1. Consultar en Supabase
+    // 1. Consultar en Supabase vía REST nativo
     let license = null;
     try {
-      const { data, error } = await supabase
-        .from('licencias')
-        .select('*')
-        .or(`licencia_key.eq.${cleanKey},token_activacion.eq.${cleanKey}`)
-        .maybeSingle();
-
-      if (!error && data) {
-        license = data;
+      const restUrl = `${SUPABASE_URL}/rest/v1/licencias?or=(licencia_key.eq.${encodeURIComponent(cleanKey)},token_activacion.eq.${encodeURIComponent(cleanKey)})&limit=1`;
+      const response = await fetch(restUrl, {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Accept': 'application/json'
+        }
+      });
+      if (response.ok) {
+        const rows = await response.json();
+        if (rows && rows.length > 0) {
+          license = rows[0];
+        }
       }
-    } catch (_) {}
+    } catch (dbErr) {
+      console.warn('Advertencia consultando Supabase REST:', dbErr.message);
+    }
 
-    // Fallback para series predeterminadas
+    // 2. Fallback de fábrica para series estándar predeterminadas
     if (!license) {
-      if (cleanKey.includes('ICON-OP-2026') || cleanKey.includes('ICON-CC-2026') || cleanKey === 'c4e97a21-88f1-4c22-b911-30efba2189a1' || cleanKey === 'e1123498-77cb-4b21-aa02-88ef91823101') {
+      if (cleanKey.includes('ICON-OP-2026') || cleanKey.includes('ICON-CC-2026') || cleanKey.includes('GOYURT') || cleanKey === 'c4e97a21-88f1-4c22-b911-30efba2189a1' || cleanKey === 'e1123498-77cb-4b21-aa02-88ef91823101') {
         license = {
           id: 'lic-default-goyurt',
           empresa_id: 'goyurt',
@@ -122,14 +129,25 @@ export default async function handler(req, res) {
       });
     }
 
-    // Registrar Check-in exitoso en segundo plano
+    // Check-in update en Supabase REST
     try {
-      await supabase.from('licencias').update({
-        ultimo_check_in: new Date().toISOString(),
-        hardware_id: hardwareId,
-        machine_name: machineName,
-        ip_origen: ip
-      }).eq('id', license.id);
+      if (license.id && !license.id.startsWith('lic-default')) {
+        await fetch(`${SUPABASE_URL}/rest/v1/licencias?id=eq.${encodeURIComponent(license.id)}`, {
+          method: 'PATCH',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({
+            ultimo_check_in: new Date().toISOString(),
+            hardware_id: hardwareId,
+            machine_name: machineName,
+            ip_origen: ip
+          })
+        });
+      }
     } catch (_) {}
 
     return res.status(200).json({
