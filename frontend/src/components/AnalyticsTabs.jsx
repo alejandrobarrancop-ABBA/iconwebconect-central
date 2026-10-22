@@ -10,10 +10,11 @@ import {
   ChevronDown, 
   ShieldCheck, 
   Building2,
-  Sliders
+  Sliders,
+  Key
 } from 'lucide-react';
 
-export default function AnalyticsTabs({ activeTab, setActiveTab, userRole }) {
+export default function AnalyticsTabs({ activeTab, setActiveTab, userRole, onOpenSaas }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -56,13 +57,23 @@ export default function AnalyticsTabs({ activeTab, setActiveTab, userRole }) {
     }
   ];
 
-  const isAdminTabActive = activeTab === 'config' || activeTab === 'usuarios' || activeTab === 'parametros';
-  // REGLA: Solo el ADMINISTRADOR GENERAL puede ver el menú de Administración (Crear usuarios y Configuración)
-  // El GERENTE EJECUTIVO tiene acceso al consolidado y analítica, pero NO a administración
-  const showAdminMenu = userRole === 'ADMINISTRADOR';
+  if (userRole === 'SUPERADMIN' || userRole === 'DISTRIBUIDOR') {
+    adminOptions.unshift({
+      id: 'saas_hub',
+      label: userRole === 'SUPERADMIN' ? 'Consola Global SaaS & Distribuidores' : 'Portal Distribuidor & Licencias',
+      desc: 'Emisión de licencias On-Premise, suscripciones anuales y tenants',
+      icon: ShieldCheck,
+      highlight: true
+    });
+  }
+
+  const isAdminTabActive = activeTab === 'config' || activeTab === 'usuarios' || activeTab === 'parametros' || activeTab === 'saas_hub';
+  const showAdminMenu = userRole === 'ADMINISTRADOR' || userRole === 'SUPERADMIN' || userRole === 'DISTRIBUIDOR';
 
   const handleSelectAdminOption = (tabId) => {
-    if (tabId === 'parametros') {
+    if (tabId === 'saas_hub') {
+      if (onOpenSaas) onOpenSaas();
+    } else if (tabId === 'parametros') {
       setActiveTab('config');
     } else {
       setActiveTab(tabId);
@@ -103,7 +114,7 @@ export default function AnalyticsTabs({ activeTab, setActiveTab, userRole }) {
         );
       })}
 
-      {/* 2. Menú Desplegable: ADMINISTRACIÓN (Exclusivo para ADMINISTRADOR) */}
+      {/* 2. Menú Desplegable: ADMINISTRACIÓN */}
       {showAdminMenu && (
         <div className="relative" ref={dropdownRef}>
           <button
@@ -119,44 +130,53 @@ export default function AnalyticsTabs({ activeTab, setActiveTab, userRole }) {
             <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
           </button>
 
-          {/* Menú Desplegable Flotante */}
+          {/* Menú Desplegable con Sombra Suave y Fondo Blanco */}
           {dropdownOpen && (
-            <div className="absolute left-0 mt-2 w-80 bg-white border border-slate-200 rounded-2xl shadow-2xl shadow-slate-300/80 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-              <div className="px-4 py-2 border-b border-slate-100 mb-1">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
-                  Panel de Administración
-                </span>
-                <span className="text-xs font-bold text-slate-800">
-                  Gestión y Parámetros del Sistema
+            <div className="absolute left-0 top-full mt-2 w-80 bg-white border border-slate-200 rounded-2xl shadow-xl shadow-slate-200/80 p-2 z-50 animate-in fade-in zoom-in-95 font-sans">
+              <div className="px-3 py-2 border-b border-slate-100 mb-1">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                  Módulos de Control
                 </span>
               </div>
 
-              {adminOptions.map((opt) => {
-                const Icon = opt.icon;
-                const isOptionActive = activeTab === opt.id;
+              <div className="space-y-1">
+                {adminOptions.map((opt) => {
+                  const OptIcon = opt.icon;
+                  const isSelected = activeTab === opt.id;
 
-                return (
-                  <button
-                    key={opt.id}
-                    onClick={() => handleSelectAdminOption(opt.id)}
-                    className={`w-full flex items-start gap-3 px-4 py-2.5 text-left transition-colors ${
-                      isOptionActive
-                        ? 'bg-teal-50/80 text-teal-900 border-l-4 border-[#22c1b4]'
-                        : 'hover:bg-slate-50 text-slate-700'
-                    }`}
-                  >
-                    <div className={`p-2 rounded-xl mt-0.5 ${
-                      isOptionActive ? 'bg-[#22c1b4] text-white' : 'bg-slate-100 text-slate-500'
-                    }`}>
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold leading-snug">{opt.label}</div>
-                      <div className="text-[11px] text-slate-500 leading-tight mt-0.5">{opt.desc}</div>
-                    </div>
-                  </button>
-                );
-              })}
+                  return (
+                    <button
+                      key={opt.id}
+                      onClick={() => handleSelectAdminOption(opt.id)}
+                      className={`w-full flex items-start gap-3 p-2.5 rounded-xl text-left transition-colors ${
+                        opt.highlight
+                          ? 'bg-purple-50 hover:bg-purple-100 text-purple-950 border border-purple-200 mb-1'
+                          : isSelected
+                          ? 'bg-teal-50 text-teal-900 border border-teal-200'
+                          : 'hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <div className={`p-2 rounded-lg shrink-0 mt-0.5 ${
+                        opt.highlight
+                          ? 'bg-purple-200 text-purple-800'
+                          : isSelected 
+                          ? 'bg-teal-500 text-white shadow-sm' 
+                          : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        <OptIcon className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold leading-snug">
+                          {opt.label}
+                        </div>
+                        <div className="text-[10px] text-slate-400 leading-tight mt-0.5">
+                          {opt.desc}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>

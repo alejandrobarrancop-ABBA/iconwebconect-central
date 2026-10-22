@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, User, ArrowRight, AlertCircle, BarChart3, Building2 } from 'lucide-react';
+import { Lock, User, ArrowRight, AlertCircle, BarChart3, Building2, ShieldCheck, Users, Star } from 'lucide-react';
 
 export default function Login({ onLoginSuccess }) {
   const [username, setUsername] = useState('ADMIN');
@@ -8,7 +8,7 @@ export default function Login({ onLoginSuccess }) {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     setError('');
     setLoading(true);
 
@@ -24,6 +24,40 @@ export default function Login({ onLoginSuccess }) {
 
       const matchUser = registeredUsers.find(ru => ru.username === u && ru.activo);
 
+      // 1. Acceso SUPERADMIN GLOBAL (Grupo VEV / ABBA)
+      if (u === 'SUPERADMIN' || u === 'VEV' || (u === 'SUPER' && p === '1234')) {
+        const userObj = {
+          username: u,
+          nombre: 'SuperAdmin General Global',
+          rol: 'SUPERADMIN',
+          distribuidor_id: null,
+          empresa_id: 'goyurt',
+          empresa: 'GRUPO VEV / ABBA INNOVATION S.A.',
+          sucursal: 'ALL'
+        };
+        localStorage.setItem('iconweb_user', JSON.stringify(userObj));
+        onLoginSuccess(userObj);
+        return;
+      }
+
+      // 2. Acceso DISTRIBUIDOR AUTORIZADO (ABBA Innovation / Resellers)
+      if (u === 'DISTRIBUIDOR' || u === 'ABBA' || u === 'DIST' || u === 'DIST_ABBA') {
+        const userObj = {
+          username: u,
+          nombre: 'ABBA INNOVATION S.A. (Distribuidor)',
+          rol: 'DISTRIBUIDOR',
+          distribuidor_id: 'dist-abba',
+          distribuidor_nombre: 'ABBA INNOVATION S.A.',
+          empresa_id: 'goyurt',
+          empresa: 'ABBA INNOVATION S.A.',
+          sucursal: 'ALL'
+        };
+        localStorage.setItem('iconweb_user', JSON.stringify(userObj));
+        onLoginSuccess(userObj);
+        return;
+      }
+
+      // 3. Usuarios de Cliente Final (Goyurt u otros)
       if ((u === 'ADMIN' && p === '1234') || 
           (u === 'EJECUTIVO' && p === '1234') || 
           (u === 'GERENTE' && p === '1234') || 
@@ -65,6 +99,7 @@ export default function Login({ onLoginSuccess }) {
                     : (u === 'GERENTE' ? 'Gerente Sucursal 1' : 'Operador de Sucursal'))),
           rol: detectedRole,
           sucursal: assignedSucursal,
+          empresa_id: 'goyurt',
           empresa: 'GOYURT PANAMÁ'
         };
 
@@ -74,7 +109,12 @@ export default function Login({ onLoginSuccess }) {
         setError('Credenciales incorrectas. Verifique su usuario y contraseña.');
         setLoading(false);
       }
-    }, 300);
+    }, 250);
+  };
+
+  const handleQuickFill = (user, pass = '1234') => {
+    setUsername(user);
+    setPassword(pass);
   };
 
   return (
@@ -95,7 +135,7 @@ export default function Login({ onLoginSuccess }) {
           </h1>
 
           <div className="inline-block mt-1 px-3 py-0.5 rounded-full bg-teal-50 border border-teal-200 text-teal-700 text-[11px] font-black uppercase tracking-wider">
-            PLATAFORMA GERENCIAL CENTRAL
+            PLATAFORMA SAAS GERENCIAL CENTRAL
           </div>
 
           {/* Campo Ampliado y Prominente del Logo y Nombre de la Empresa Cliente */}
@@ -117,7 +157,7 @@ export default function Login({ onLoginSuccess }) {
           </div>
 
           <p className="text-[11px] text-slate-500 mt-2.5 font-medium">
-            Consolidación y Analítica de Ventas Multi-Sucursal en la Nube
+            Multi-Tenant SaaS · Consolidación y Licenciamiento Online
           </p>
         </div>
 
@@ -141,7 +181,7 @@ export default function Login({ onLoginSuccess }) {
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="ADMIN"
+                placeholder="ADMIN, SUPERADMIN o DISTRIBUIDOR"
                 className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition-all"
               />
             </div>
@@ -165,6 +205,66 @@ export default function Login({ onLoginSuccess }) {
             </div>
           </div>
 
+          {/* Botones de Selección Rápida de Rol */}
+          <div className="pt-1">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1.5">
+              Acceso Rápido por Rol:
+            </span>
+            <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+              <button
+                type="button"
+                onClick={() => handleQuickFill('SUPERADMIN')}
+                className={`py-1.5 px-2 rounded-lg border text-left flex items-center gap-1.5 font-bold transition-all ${
+                  username === 'SUPERADMIN' 
+                    ? 'bg-purple-50 border-purple-300 text-purple-900 shadow-sm' 
+                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                <span className="truncate">SuperAdmin SaaS</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleQuickFill('DISTRIBUIDOR')}
+                className={`py-1.5 px-2 rounded-lg border text-left flex items-center gap-1.5 font-bold transition-all ${
+                  username === 'DISTRIBUIDOR' 
+                    ? 'bg-sky-50 border-sky-300 text-sky-900 shadow-sm' 
+                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                <span className="truncate">Distribuidor (ABBA)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleQuickFill('ADMIN')}
+                className={`py-1.5 px-2 rounded-lg border text-left flex items-center gap-1.5 font-bold transition-all ${
+                  username === 'ADMIN' 
+                    ? 'bg-teal-50 border-teal-300 text-teal-900 shadow-sm' 
+                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <Building2 className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                <span className="truncate">Goyurt Admin</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleQuickFill('EJECUTIVO')}
+                className={`py-1.5 px-2 rounded-lg border text-left flex items-center gap-1.5 font-bold transition-all ${
+                  username === 'EJECUTIVO' 
+                    ? 'bg-indigo-50 border-indigo-300 text-indigo-900 shadow-sm' 
+                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <Star className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                <span className="truncate">Gerente Ejecutivo</span>
+              </button>
+            </div>
+          </div>
+
           {/* Botón de Ingreso TURQUESA */}
           <button
             type="submit"
@@ -177,7 +277,7 @@ export default function Login({ onLoginSuccess }) {
         </form>
 
         {/* Pie de Login Oficial */}
-        <div className="mt-8 pt-5 border-t border-slate-100 text-center text-[10px] text-slate-500 space-y-1">
+        <div className="mt-6 pt-4 border-t border-slate-100 text-center text-[10px] text-slate-500 space-y-1">
           <div className="font-bold tracking-tight text-slate-600">
             DESARROLLADO POR GRUPO VEV, S.A. — DISTRIBUIDO POR ABBA INNOVATION S.A. PANAMÁ
           </div>

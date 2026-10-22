@@ -10,7 +10,11 @@ import {
   Clock, 
   Calendar,
   Radio,
-  ChevronDown
+  ChevronDown,
+  ShieldCheck,
+  Users,
+  LayoutDashboard,
+  CheckCircle2
 } from 'lucide-react';
 
 export default function Navbar({
@@ -22,7 +26,10 @@ export default function Navbar({
   onRefresh,
   loading,
   currentUser,
-  onLogout
+  onLogout,
+  isSaasView = false,
+  onToggleSaasView,
+  activeTenantName = 'GOYURT PANAMÁ'
 }) {
   // Reloj y Fecha del Sistema en Tiempo Real
   const [now, setNow] = useState(new Date());
@@ -49,9 +56,11 @@ export default function Navbar({
   });
 
   // ADMINISTRADOR y GERENTE EJECUTIVO tienen acceso a todas las sucursales (Consolidado)
-  const canViewAllBranches = currentUser?.rol === 'ADMINISTRADOR' || currentUser?.rol === 'GERENTE EJECUTIVO';
+  const canViewAllBranches = currentUser?.rol === 'ADMINISTRADOR' || currentUser?.rol === 'GERENTE EJECUTIVO' || currentUser?.rol === 'SUPERADMIN' || currentUser?.rol === 'DISTRIBUIDOR';
   const assignedBranch = currentUser?.sucursal;
   const assignedBranchObj = branches.find(b => b.id === assignedBranch);
+
+  const isSuperAdminOrDist = currentUser?.rol === 'SUPERADMIN' || currentUser?.rol === 'DISTRIBUIDOR';
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-3 shadow-sm font-sans">
@@ -106,11 +115,27 @@ export default function Navbar({
           {/* C) Área del Cliente & Usuario: LOGO DEL CLIENTE (GOYURT) + CUENTA + LOGOUT */}
           {currentUser && (
             <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0">
+              {/* Botón de alternar Vista SaaS para SuperAdmin / Distribuidor */}
+              {isSuperAdminOrDist && onToggleSaasView && (
+                <button
+                  onClick={onToggleSaasView}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 border transition-all ${
+                    isSaasView
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                      : 'bg-purple-50 text-purple-900 border-purple-200 hover:bg-purple-100'
+                  }`}
+                  title={isSaasView ? 'Volver a ver Ventas del Cliente' : 'Ir a Panel SaaS y Licencias'}
+                >
+                  {isSaasView ? <LayoutDashboard className="w-3.5 h-3.5" /> : <ShieldCheck className="w-3.5 h-3.5 text-purple-600" />}
+                  <span className="hidden sm:inline">{isSaasView ? 'Ver Portal Cliente' : 'Panel SaaS / Licencias'}</span>
+                </button>
+              )}
+
               {/* Logo del Cliente (GOYURT) Ampliado y Visible */}
-              <div className="bg-white px-3 sm:px-4 py-1.5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-center shrink-0" title="Cliente: GOYURT PANAMÁ">
+              <div className="bg-white px-3 sm:px-4 py-1.5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-center shrink-0" title={`Cliente: ${activeTenantName}`}>
                 <img
                   src="/goyurt-logo.png"
-                  alt="Goyurt Panamá"
+                  alt={activeTenantName}
                   className="h-8 sm:h-9 w-auto object-contain max-w-[90px] sm:max-w-[120px]"
                   onError={(e) => {
                     e.target.style.display = 'none';
@@ -124,11 +149,17 @@ export default function Navbar({
                   {currentUser.username}
                 </span>
                 <span className={`text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider flex items-center justify-end gap-1 ${
-                  currentUser.rol === 'ADMINISTRADOR'
+                  currentUser.rol === 'SUPERADMIN'
+                    ? 'text-purple-700 font-black'
+                    : currentUser.rol === 'DISTRIBUIDOR'
+                    ? 'text-sky-700 font-black'
+                    : currentUser.rol === 'ADMINISTRADOR'
                     ? 'text-teal-700'
                     : (currentUser.rol === 'GERENTE EJECUTIVO' ? 'text-indigo-700' : 'text-slate-600')
                 }`}>
                   {currentUser.rol === 'GERENTE EJECUTIVO' && <Star className="w-2.5 h-2.5 text-indigo-500 shrink-0" />}
+                  {currentUser.rol === 'SUPERADMIN' && <ShieldCheck className="w-2.5 h-2.5 text-purple-600 shrink-0" />}
+                  {currentUser.rol === 'DISTRIBUIDOR' && <Users className="w-2.5 h-2.5 text-sky-600 shrink-0" />}
                   <span>{currentUser.rol}</span>
                   {!canViewAllBranches && <Lock className="w-2.5 h-2.5 text-amber-500 shrink-0" />}
                 </span>
@@ -147,79 +178,87 @@ export default function Navbar({
         </div>
 
         {/* ============================================================== */}
-        {/* FILA 2: BARRA DE FILTROS Y CONTROLES (RESPONSIVA & CÓMODA)    */}
+        {/* FILA 2: BARRA DE FILTROS Y CONTROLES (SOLO SI NO ESTÁ EN SAAS) */}
         {/* ============================================================== */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-slate-100">
-          {/* Reloj en Móviles (< 768px) */}
-          <div className="flex md:hidden items-center justify-center gap-2 bg-gradient-to-r from-teal-50 via-emerald-50 to-teal-50 border border-teal-200 px-3 py-1 rounded-xl text-xs w-full">
-            <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse shrink-0" />
-            <span className="text-slate-700 font-bold capitalize text-[11px]">{dateFormatted}</span>
-            <span className="text-teal-300 font-bold">•</span>
-            <span className="font-mono font-black text-teal-900 text-[11px] bg-white px-1.5 py-0.5 rounded border border-teal-200">{timeFormatted}</span>
-          </div>
+        {!isSaasView && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-slate-100">
+            {/* Reloj en Móviles (< 768px) */}
+            <div className="flex md:hidden items-center justify-center gap-2 bg-gradient-to-r from-teal-50 via-emerald-50 to-teal-50 border border-teal-200 px-3 py-1 rounded-xl text-xs w-full">
+              <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse shrink-0" />
+              <span className="text-slate-700 font-bold capitalize text-[11px]">{dateFormatted}</span>
+              <span className="text-teal-300 font-bold">•</span>
+              <span className="font-mono font-black text-teal-900 text-[11px] bg-white px-1.5 py-0.5 rounded border border-teal-200">{timeFormatted}</span>
+            </div>
 
-          {/* Filtros: Sucursal, Fecha y Botón Actualizar */}
-          <div className="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2 w-full">
-            {/* Selector de Sucursal */}
-            <div className="relative flex-1 min-w-[200px]">
-              {canViewAllBranches ? (
-                <>
-                  <select
-                    value={selectedBranch}
-                    onChange={(e) => setSelectedBranch(e.target.value)}
-                    className="w-full bg-slate-50 hover:bg-white border border-slate-200 text-slate-800 text-xs font-bold rounded-xl pl-3.5 pr-8 py-2.5 appearance-none focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 cursor-pointer shadow-sm transition-colors"
+            {/* Filtros: Sucursal, Fecha y Botón Actualizar */}
+            <div className="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2 w-full">
+              {/* Badge de Licencia Anual Activa */}
+              <div className="hidden lg:flex items-center gap-1.5 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-[11px] font-extrabold shrink-0">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>Licencia Anual Activa (365d)</span>
+              </div>
+
+              {/* Selector de Sucursal */}
+              <div className="relative flex-1 min-w-[200px]">
+                {canViewAllBranches ? (
+                  <>
+                    <select
+                      value={selectedBranch}
+                      onChange={(e) => setSelectedBranch(e.target.value)}
+                      className="w-full bg-slate-50 hover:bg-white border border-slate-200 text-slate-800 text-xs font-bold rounded-xl pl-3.5 pr-8 py-2.5 appearance-none focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 cursor-pointer shadow-sm transition-colors"
+                    >
+                      <option value="ALL">🌐 Todas las Sucursales (Consolidado)</option>
+                      {branches.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          📍 {b.nombre}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  </>
+                ) : (
+                  <div 
+                    className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl px-3.5 py-2.5 shadow-sm"
+                    title={`Acceso restringido por rol ${currentUser?.rol} a su sucursal asignada`}
                   >
-                    <option value="ALL">🌐 Todas las Sucursales (Consolidado)</option>
-                    {branches.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        📍 {b.nombre}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                </>
-              ) : (
-                <div 
-                  className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl px-3.5 py-2.5 shadow-sm"
-                  title={`Acceso restringido por rol ${currentUser?.rol} a su sucursal asignada`}
+                    <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <span className="truncate">📍 {assignedBranchObj ? assignedBranchObj.nombre : (assignedBranch || 'Sucursal Asignada')}</span>
+                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 uppercase ml-auto shrink-0">
+                      Exclusivo
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Selector de Rango de Fechas */}
+              <div className="relative flex-1 min-w-[170px]">
+                <select
+                  value={dateRange}
+                  onChange={(e) => setDateRange(e.target.value)}
+                  className="w-full bg-slate-50 hover:bg-white border border-slate-200 text-slate-800 text-xs font-bold rounded-xl pl-3.5 pr-8 py-2.5 appearance-none focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 cursor-pointer shadow-sm transition-colors"
                 >
-                  <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                  <span className="truncate">📍 {assignedBranchObj ? assignedBranchObj.nombre : (assignedBranch || 'Sucursal Asignada')}</span>
-                  <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 uppercase ml-auto shrink-0">
-                    Exclusivo
-                  </span>
-                </div>
-              )}
-            </div>
+                  <option value="TODAY">📅 Ventas de Hoy</option>
+                  <option value="YESTERDAY">📅 Ventas de Ayer</option>
+                  <option value="LAST_7_DAYS">📅 Últimos 7 Días</option>
+                  <option value="THIS_MONTH">📅 Mes en Curso</option>
+                  <option value="THIS_YEAR">📅 Año Completo (2026)</option>
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              </div>
 
-            {/* Selector de Rango de Fechas */}
-            <div className="relative flex-1 min-w-[170px]">
-              <select
-                value={dateRange}
-                onChange={(e) => setDateRange(e.target.value)}
-                className="w-full bg-slate-50 hover:bg-white border border-slate-200 text-slate-800 text-xs font-bold rounded-xl pl-3.5 pr-8 py-2.5 appearance-none focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 cursor-pointer shadow-sm transition-colors"
+              {/* Botón Refrescar TURQUESA (Con buen tamaño táctil) */}
+              <button
+                onClick={onRefresh}
+                disabled={loading}
+                className="flex items-center justify-center gap-2 bg-[#22c1b4] hover:bg-teal-600 active:bg-teal-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm shadow-teal-500/25 disabled:opacity-50 shrink-0"
+                title="Refrescar datos en vivo"
               >
-                <option value="TODAY">📅 Ventas de Hoy</option>
-                <option value="YESTERDAY">📅 Ventas de Ayer</option>
-                <option value="LAST_7_DAYS">📅 Últimos 7 Días</option>
-                <option value="THIS_MONTH">📅 Mes en Curso</option>
-                <option value="THIS_YEAR">📅 Año Completo (2026)</option>
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-white' : 'text-teal-100'}`} />
+                <span>{loading ? 'Cargando...' : 'Actualizar'}</span>
+              </button>
             </div>
-
-            {/* Botón Refrescar TURQUESA (Con buen tamaño táctil) */}
-            <button
-              onClick={onRefresh}
-              disabled={loading}
-              className="flex items-center justify-center gap-2 bg-[#22c1b4] hover:bg-teal-600 active:bg-teal-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm shadow-teal-500/25 disabled:opacity-50 shrink-0"
-              title="Refrescar datos en vivo"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-white' : 'text-teal-100'}`} />
-              <span>{loading ? 'Cargando...' : 'Actualizar'}</span>
-            </button>
           </div>
-        </div>
+        )}
       </div>
     </header>
   );
